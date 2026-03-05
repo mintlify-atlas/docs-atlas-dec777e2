@@ -1,0 +1,118 @@
+{
+  "projectType": "saas",
+  "projectName": "BeanQuick",
+  "projectDescription": "A multi-vendor marketplace platform connecting local businesses with customers for food and beverage orders",
+  "theme": "almond",
+  "primaryColor": "#6B4423",
+  "lightColor": "#D4A574",
+  "darkColor": "#3E2723",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "installation"]
+          },
+          {
+            "group": "User Guides",
+            "pages": [
+              "guides/customers",
+              "guides/businesses",
+              "guides/administrators"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/business-registration",
+              "features/product-management",
+              "features/shopping-cart",
+              "features/order-management",
+              "features/payments",
+              "features/ratings-reviews"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment",
+              "configuration/database",
+              "configuration/email",
+              "configuration/payment-gateway"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/register",
+              "api/auth/login",
+              "api/auth/logout"
+            ]
+          },
+          {
+            "group": "Customer Endpoints",
+            "pages": [
+              "api/customer/businesses",
+              "api/customer/products",
+              "api/customer/cart",
+              "api/customer/orders",
+              "api/customer/ratings"
+            ]
+          },
+          {
+            "group": "Business Endpoints",
+            "pages": [
+              "api/business/profile",
+              "api/business/products",
+              "api/business/orders",
+              "api/business/dashboard"
+            ]
+          },
+          {
+            "group": "Admin Endpoints",
+            "pages": [
+              "api/admin/applications",
+              "api/admin/categories",
+              "api/admin/users",
+              "api/admin/businesses"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-vendor marketplace with business registration and approval workflow",
+    "Product catalog management with categories and images",
+    "Shopping cart and order processing with pickup time scheduling",
+    "Integrated payment processing via Mercado Pago",
+    "Customer ratings and reviews system",
+    "Business dashboard with sales analytics and PDF reports",
+    "Role-based access control (Admin, Business, Customer)",
+    "Real-time order status tracking"
+  ],
+  "publicApiSurface": [
+    "POST /api/register - Register new user account",
+    "POST /api/login - Authenticate user",
+    "POST /api/solicitud-empresa - Submit business application",
+    "GET /api/productos/destacados - Get featured products",
+    "GET /api/categorias - List all categories",
+    "POST /api/cliente/carrito/agregar/{productoId} - Add product to cart",
+    "POST /api/cliente/pedidos - Create new order",
+    "GET /api/cliente/mis-pedidos - Get customer orders",
+    "POST /api/empresa/productos - Create product (business)",
+    "GET /api/empresa/pedidos - Get business orders",
+    "PATCH /api/empresa/pedidos/{pedido}/estado - Update order status",
+    "GET /api/empresa/dashboard - Get business analytics",
+    "GET /api/admin/solicitudes - List business applications (admin)",
+    "POST /api/admin/aprobar/{id} - Approve business application",
+    "POST /api/webhook/mercadopago - Payment webhook endpoint"
+  ]
+}
