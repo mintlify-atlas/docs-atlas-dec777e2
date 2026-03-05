@@ -1,0 +1,73 @@
+---
+title: 'Logout'
+api: 'POST /api/logout'
+description: 'Revoke the current authentication token'
+---
+
+## Endpoint
+
+```
+POST /api/logout
+```
+
+Revokes the current user's authentication token, effectively logging them out. This invalidates the token used in the request, preventing further API access with that token.
+
+## Authentication
+
+**Required.** This endpoint requires a valid Sanctum authentication token.
+
+Include the token in the request header:
+```
+Authorization: Bearer {token}
+```
+
+## Request Body
+
+No request body required.
+
+## Response
+
+<ResponseField name="status" type="string">
+  Response status. Returns `success` when the token is successfully revoked.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Confirmation message.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.beanquick.com/api/logout \
+  -H "Authorization: Bearer 1|AbCdEfGhIjKlMnOpQrStUvWxYz1234567890" \
+  -H "Content-Type: application/json"
+```
+
+## Example Response
+
+```json
+{
+  "status": "success",
+  "message": "Sesión cerrada correctamente"
+}
+```
+
+## Error Responses
+
+### Unauthenticated (401)
+
+Returned when no token is provided or the token is invalid.
+
+```json
+{
+  "message": "Unauthenticated."
+}
+```
+
+## Notes
+
+- Only the current access token (the one used in the request) is revoked
+- Other tokens issued to the same user remain valid
+- After logout, the client should clear the stored token
+- To revoke all tokens for a user, use `$user->tokens()->delete()` on the backend
+- The endpoint is protected by Laravel Sanctum's `auth:sanctum` middleware

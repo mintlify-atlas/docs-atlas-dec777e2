@@ -1,0 +1,194 @@
+---
+title: 'Register User'
+api: 'POST /api/register'
+description: 'Create a new user account in BeanQuick'
+---
+
+## Endpoint
+
+```
+POST /api/register
+```
+
+Creates a new user account and automatically logs them in. Returns the user object and authentication token. A welcome email is sent upon successful registration.
+
+## Authentication
+
+No authentication required (public endpoint).
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Full name of the user. Maximum 255 characters. Cannot contain HTML tags or special characters like `<`, `>`, `{`, `}`, `/`.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Valid email address. Must be unique in the system. Maximum 255 characters.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User password. Must meet the following requirements:
+  - Minimum 8 characters
+  - Contains both uppercase and lowercase letters
+  - Contains at least one number
+  - Not a commonly compromised password
+</ParamField>
+
+<ParamField body="password_confirmation" type="string" required>
+  Must match the `password` field exactly.
+</ParamField>
+
+<ParamField body="rol" type="string" required>
+  User role. Allowed values:
+  - `cliente` - Customer who can browse and purchase products
+  - `empresa` - Business owner who can manage products and orders
+  - `admin` - Platform administrator
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="string">
+  Response status. Returns `success` on successful registration.
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  The created user object.
+  
+  <ResponseField name="user.id" type="integer">
+    Unique user identifier.
+  </ResponseField>
+  
+  <ResponseField name="user.name" type="string">
+    User's full name.
+  </ResponseField>
+  
+  <ResponseField name="user.email" type="string">
+    User's email address.
+  </ResponseField>
+  
+  <ResponseField name="user.rol" type="string">
+    User's role (`cliente`, `empresa`, or `admin`).
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="token" type="string">
+  Sanctum authentication token. Use this token in the `Authorization: Bearer {token}` header for authenticated requests.
+</ResponseField>
+
+<ResponseField name="redirectTo" type="string">
+  Suggested redirect URL based on user role:
+  - `/empresa/panel` for business owners
+  - `/admin/dashboard` for administrators
+  - `/` for customers
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Success message.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.beanquick.com/api/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "María García",
+    "email": "maria@example.com",
+    "password": "SecurePass123",
+    "password_confirmation": "SecurePass123",
+    "rol": "cliente"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "status": "success",
+  "user": {
+    "id": 42,
+    "name": "María García",
+    "email": "maria@example.com",
+    "rol": "cliente"
+  },
+  "token": "1|AbCdEfGhIjKlMnOpQrStUvWxYz1234567890",
+  "redirectTo": "/",
+  "message": "Cuenta creada y protegida correctamente"
+}
+```
+
+## Error Responses
+
+### Validation Error (422)
+
+```json
+{
+  "message": "The email has already been taken.",
+  "errors": {
+    "email": [
+      "The email has already been taken."
+    ]
+  }
+}
+```
+
+### Invalid Name Format (422)
+
+```json
+{
+  "message": "The name field format is invalid.",
+  "errors": {
+    "name": [
+      "The name field format is invalid."
+    ]
+  }
+}
+```
+
+### Weak Password (422)
+
+```json
+{
+  "message": "The password must contain at least one uppercase and one lowercase letter.",
+  "errors": {
+    "password": [
+      "The password must contain at least one uppercase and one lowercase letter.",
+      "The password must contain at least one number."
+    ]
+  }
+}
+```
+
+### Password Mismatch (422)
+
+```json
+{
+  "message": "The password field confirmation does not match.",
+  "errors": {
+    "password": [
+      "The password field confirmation does not match."
+    ]
+  }
+}
+```
+
+### Invalid Role (422)
+
+```json
+{
+  "message": "The selected rol is invalid.",
+  "errors": {
+    "rol": [
+      "The selected rol is invalid."
+    ]
+  }
+}
+```
+
+## Notes
+
+- User passwords are hashed using bcrypt before storage
+- A welcome email is automatically sent to the registered email address
+- The user is automatically authenticated upon successful registration
+- The returned token should be stored securely on the client side
+- Tokens do not expire by default in Laravel Sanctum

@@ -1,0 +1,521 @@
+---
+title: "Installation"
+description: "Complete installation guide for BeanQuick"
+---
+
+This comprehensive guide walks you through installing and configuring BeanQuick, a multi-vendor marketplace platform built with Laravel and React.
+
+## System Requirements
+
+Before installing BeanQuick, ensure your system meets these requirements:
+
+### Backend Requirements
+
+- **PHP**: 8.2 or higher
+- **Composer**: Latest version
+- **Database**: MySQL 5.7+ or MariaDB 10.3+
+- **Extensions**: 
+  - OpenSSL PHP Extension
+  - PDO PHP Extension
+  - Mbstring PHP Extension
+  - Tokenizer PHP Extension
+  - XML PHP Extension
+  - Ctype PHP Extension
+  - JSON PHP Extension
+  - BCMath PHP Extension
+
+### Frontend Requirements
+
+- **Node.js**: 18.x or higher
+- **npm**: 9.x or higher (or yarn/pnpm)
+
+### Optional Services
+
+- **Redis**: For caching and queue management (recommended for production)
+- **Supervisor**: For queue worker management in production
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone BeanQuick to your local machine or server:
+
+    ```bash
+    git clone <repository-url> beanquick
+    cd beanquick
+    ```
+  </Step>
+
+  <Step title="Backend Setup">
+    ### Install Composer Dependencies
+
+    Navigate to the backend directory and install PHP dependencies:
+
+    ```bash
+    cd back-end
+    composer install
+    ```
+
+    For production environments, use:
+
+    ```bash
+    composer install --no-dev --optimize-autoloader
+    ```
+
+    ### Configure Environment
+
+    Copy the example environment file:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Generate an application key:
+
+    ```bash
+    php artisan key:generate
+    ```
+
+    ### Database Configuration
+
+    Edit your `.env` file with your database credentials:
+
+    ```bash .env
+    APP_NAME=BeanQuick
+    APP_ENV=local
+    APP_KEY=base64:your-generated-key
+    APP_DEBUG=true
+    APP_URL=http://localhost:8000
+
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=back_end
+    DB_USERNAME=root
+    DB_PASSWORD=your_password
+    ```
+
+    <Accordion title="Additional Configuration Options">
+      **Queue Configuration**
+      ```bash
+      QUEUE_CONNECTION=database
+      ```
+      For production, consider using Redis:
+      ```bash
+      QUEUE_CONNECTION=redis
+      REDIS_HOST=127.0.0.1
+      REDIS_PASSWORD=null
+      REDIS_PORT=6379
+      ```
+
+      **Cache Configuration**
+      ```bash
+      CACHE_STORE=database
+      ```
+      For better performance:
+      ```bash
+      CACHE_STORE=redis
+      ```
+
+      **Mail Configuration**
+      ```bash
+      MAIL_MAILER=smtp
+      MAIL_HOST=smtp.mailtrap.io
+      MAIL_PORT=2525
+      MAIL_USERNAME=your_username
+      MAIL_PASSWORD=your_password
+      MAIL_FROM_ADDRESS="noreply@beanquick.com"
+      MAIL_FROM_NAME="${APP_NAME}"
+      ```
+
+      **Session Configuration**
+      ```bash
+      SESSION_DRIVER=database
+      SESSION_LIFETIME=120
+      ```
+    </Accordion>
+
+    ### Create Database
+
+    Create the database specified in your `.env` file:
+
+    ```bash
+    mysql -u root -p -e "CREATE DATABASE back_end CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    ```
+
+    ### Run Migrations
+
+    Execute database migrations to create all required tables:
+
+    ```bash
+    php artisan migrate
+    ```
+
+    <Warning>
+      In production, always backup your database before running migrations.
+    </Warning>
+  </Step>
+
+  <Step title="Database Seeding">
+    BeanQuick provides seeders to populate your database with initial data.
+
+    ### Seed with Default Data
+
+    Run all seeders including the admin user:
+
+    ```bash
+    php artisan db:seed
+    ```
+
+    This creates:
+    - Admin user (email: `admin@gmail.com`, password: `Admin12345`)
+    - Test user (email: `test@example.com`)
+    - Sample categories (via `CategoriaSeeder`)
+
+    ### Seed Individual Seeders
+
+    You can run specific seeders:
+
+    <CodeGroup>
+      ```bash Admin User Only
+      php artisan db:seed --class=AdminUserSeeder
+      ```
+
+      ```bash Categories Only
+      php artisan db:seed --class=CategoriaSeeder
+      ```
+    </CodeGroup>
+
+    ### Fresh Migration with Seeding
+
+    To reset the database and seed in one command:
+
+    ```bash
+    php artisan migrate:fresh --seed
+    ```
+
+    <Warning>
+      `migrate:fresh` will DROP all tables and recreate them. Never use in production with existing data.
+    </Warning>
+  </Step>
+
+  <Step title="Frontend Setup">
+    ### Install Node Dependencies
+
+    Navigate to the frontend directory:
+
+    ```bash
+    cd ../front-end
+    npm install
+    ```
+
+    ### Development Build
+
+    For development with hot module reloading:
+
+    ```bash
+    npm run dev
+    ```
+
+    ### Production Build
+
+    For production deployment:
+
+    ```bash
+    npm run build
+    ```
+
+    This generates optimized static assets in the `dist` directory.
+
+    <Info>
+      The frontend runs on port 5173 by default during development. Production builds should be served through a web server like Nginx or Apache.
+    </Info>
+  </Step>
+
+  <Step title="Start Development Servers">
+    ### Quick Start (All Services)
+
+    From the `back-end` directory, start all services with one command:
+
+    ```bash
+    composer run dev
+    ```
+
+    This starts:
+    - Laravel server (http://localhost:8000)
+    - Queue worker for background jobs
+    - Vite dev server for frontend assets
+
+    ### Individual Services
+
+    Alternatively, run each service separately:
+
+    <CodeGroup>
+      ```bash Laravel Server
+      cd back-end
+      php artisan serve
+      ```
+
+      ```bash Queue Worker
+      cd back-end
+      php artisan queue:listen --tries=1
+      ```
+
+      ```bash Frontend
+      cd front-end
+      npm run dev
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+## Post-Installation
+
+### Verify Installation
+
+Access the application:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+
+Log in using admin credentials:
+- Email: `admin@gmail.com`
+- Password: `Admin12345`
+
+### Change Admin Password
+
+<Warning>
+  Change the default admin password immediately, especially for production deployments.
+</Warning>
+
+### Configure Payment Gateway
+
+BeanQuick includes MercadoPago integration. Add your credentials to `.env`:
+
+```bash .env
+MERCADOPAGO_PUBLIC_KEY=your_public_key
+MERCADOPAGO_ACCESS_TOKEN=your_access_token
+```
+
+### Storage Link
+
+Create a symbolic link for public file storage:
+
+```bash
+php artisan storage:link
+```
+
+## Production Deployment
+
+### Environment Configuration
+
+Update your `.env` for production:
+
+```bash .env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+
+# Use strong cache and session drivers
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+```
+
+### Optimize Application
+
+Run optimization commands:
+
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+composer install --optimize-autoloader --no-dev
+```
+
+### Queue Workers
+
+Set up Supervisor to manage queue workers. Create `/etc/supervisor/conf.d/beanquick-worker.conf`:
+
+```ini supervisor.conf
+[program:beanquick-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /path/to/beanquick/back-end/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=2
+redirect_stderr=true
+stdout_logfile=/path/to/beanquick/back-end/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+Reload Supervisor:
+
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start beanquick-worker:*
+```
+
+### Web Server Configuration
+
+<Accordion title="Nginx Configuration">
+  ```nginx nginx.conf
+  server {
+      listen 80;
+      server_name yourdomain.com;
+      root /path/to/beanquick/back-end/public;
+
+      add_header X-Frame-Options "SAMEORIGIN";
+      add_header X-Content-Type-Options "nosniff";
+
+      index index.php;
+
+      charset utf-8;
+
+      location / {
+          try_files $uri $uri/ /index.php?$query_string;
+      }
+
+      location = /favicon.ico { access_log off; log_not_found off; }
+      location = /robots.txt  { access_log off; log_not_found off; }
+
+      error_page 404 /index.php;
+
+      location ~ \.php$ {
+          fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+          fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+          include fastcgi_params;
+      }
+
+      location ~ /\.(?!well-known).* {
+          deny all;
+      }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Apache Configuration">
+  ```apache .htaccess
+  <IfModule mod_rewrite.c>
+      RewriteEngine On
+      RewriteRule ^(.*)$ public/$1 [L]
+  </IfModule>
+  ```
+
+  Ensure your document root points to `/path/to/beanquick/back-end/public`.
+</Accordion>
+
+### SSL Certificate
+
+Install SSL using Let's Encrypt:
+
+```bash
+sudo certbot --nginx -d yourdomain.com
+```
+
+## Troubleshooting
+
+<Accordion title="Permission Issues">
+  Laravel requires write permissions for storage and cache:
+
+  ```bash
+  cd back-end
+  chmod -R 775 storage bootstrap/cache
+  chown -R www-data:www-data storage bootstrap/cache
+  ```
+</Accordion>
+
+<Accordion title="Database Connection Failed">
+  Verify:
+  - MySQL service is running: `sudo systemctl status mysql`
+  - Database exists: `mysql -u root -p -e "SHOW DATABASES;"`
+  - Credentials in `.env` match your database configuration
+  - Host is correct (use `127.0.0.1` instead of `localhost` if socket issues occur)
+</Accordion>
+
+<Accordion title="Port Already in Use">
+  If port 8000 or 5173 is occupied:
+
+  ```bash Laravel Custom Port
+  php artisan serve --port=8080
+  ```
+
+  For Vite, edit `front-end/vite.config.js`:
+
+  ```javascript vite.config.js
+  export default defineConfig({
+    plugins: [react()],
+    server: {
+      port: 3000
+    }
+  })
+  ```
+</Accordion>
+
+<Accordion title="Queue Jobs Not Processing">
+  Ensure queue worker is running:
+
+  ```bash
+  php artisan queue:work
+  ```
+
+  Check failed jobs:
+
+  ```bash
+  php artisan queue:failed
+  ```
+
+  Retry failed jobs:
+
+  ```bash
+  php artisan queue:retry all
+  ```
+</Accordion>
+
+<Accordion title="Frontend Build Errors">
+  Clear npm cache and reinstall:
+
+  ```bash
+  cd front-end
+  rm -rf node_modules package-lock.json
+  npm cache clean --force
+  npm install
+  ```
+</Accordion>
+
+<Accordion title="Composer Memory Limit">
+  If Composer runs out of memory:
+
+  ```bash
+  php -d memory_limit=-1 $(which composer) install
+  ```
+</Accordion>
+
+## Running Tests
+
+BeanQuick uses Pest for testing:
+
+```bash
+cd back-end
+composer run test
+```
+
+Or directly:
+
+```bash
+php artisan test
+```
+
+## Additional Resources
+
+- Laravel Documentation: https://laravel.com/docs
+- React Documentation: https://react.dev
+- Vite Documentation: https://vitejs.dev
+- MercadoPago API: https://www.mercadopago.com/developers
+
+<Tip>
+  For development, consider using Laravel Sail for a Docker-based environment. BeanQuick includes Sail configuration out of the box.
+</Tip>

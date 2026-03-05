@@ -1,0 +1,347 @@
+---
+title: 'Orders'
+description: 'Create and manage customer orders'
+---
+
+<Warning>
+All order endpoints require authentication with Sanctum token.
+</Warning>
+
+## Create Order
+
+```http
+POST /api/cliente/pedidos
+```
+
+Create a new order from cart items for a specific business. The order is created in "Pendiente" status with "pendiente" payment status. Stock is validated but not deducted until payment is approved.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="empresa_id" type="integer" required>
+  Business ID to create order for
+</ParamField>
+
+<ParamField body="hora_recogida" type="string" required>
+  Pickup time in HH:mm format (e.g., "14:30")
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="pedido" type="object">
+  Created order object with products
+  
+  <Expandable title="Order Object">
+    <ResponseField name="id" type="integer">
+      Order ID
+    </ResponseField>
+    
+    <ResponseField name="empresa_id" type="integer">
+      Business ID
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="integer">
+      Customer user ID
+    </ResponseField>
+    
+    <ResponseField name="estado" type="string">
+      Order status: "Pendiente", "Preparando", "Listo", "Entregado", "Cancelado"
+    </ResponseField>
+    
+    <ResponseField name="estado_pago" type="string">
+      Payment status: "pendiente", "aprobado", "rechazado"
+    </ResponseField>
+    
+    <ResponseField name="hora_recogida" type="string">
+      Pickup time (HH:mm format)
+    </ResponseField>
+    
+    <ResponseField name="total" type="float">
+      Total order amount
+    </ResponseField>
+    
+    <ResponseField name="productos" type="array">
+      Array of ordered products with pivot data (cantidad, precio_unitario)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.beanquick.com/api/cliente/pedidos \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "empresa_id": 1,
+    "hora_recogida": "15:30"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 Created
+{
+  "message": "Pedido generado pendiente de pago.",
+  "pedido": {
+    "id": 42,
+    "empresa_id": 1,
+    "user_id": 7,
+    "estado": "Pendiente",
+    "estado_pago": "pendiente",
+    "hora_recogida": "15:30",
+    "total": 50000,
+    "productos": [
+      {
+        "id": 15,
+        "nombre": "Café Colombiano Premium",
+        "pivot": {
+          "cantidad": 2,
+          "precio_unitario": 25000
+        }
+      }
+    ]
+  }
+}
+```
+
+```json 200 Existing Order
+{
+  "message": "Ya tienes un pedido pendiente de pago.",
+  "pedido": {
+    "id": 41,
+    "estado": "Pendiente",
+    "estado_pago": "pendiente"
+  }
+}
+```
+
+```json 400 Empty Cart
+{
+  "message": "Tu carrito está vacío."
+}
+```
+
+```json 422 No Products from Business
+{
+  "message": "No hay productos de esta empresa en tu carrito."
+}
+```
+
+```json 422 Insufficient Stock
+{
+  "message": "Stock insuficiente para: Café Colombiano Premium. Disponible: 1"
+}
+```
+</ResponseExample>
+
+---
+
+## List Customer Orders
+
+```http
+GET /api/cliente/mis-pedidos
+```
+
+Retrieve all orders created by the authenticated customer, sorted by most recent first.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Response
+
+<ResponseField name="pedidos" type="array">
+  Array of order objects
+  
+  <Expandable title="Order Object">
+    <ResponseField name="id" type="integer">
+      Order ID
+    </ResponseField>
+    
+    <ResponseField name="empresa_id" type="integer">
+      Business ID
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="integer">
+      Customer user ID
+    </ResponseField>
+    
+    <ResponseField name="estado" type="string">
+      Order status
+    </ResponseField>
+    
+    <ResponseField name="estado_pago" type="string">
+      Payment status
+    </ResponseField>
+    
+    <ResponseField name="hora_recogida" type="string">
+      Pickup time
+    </ResponseField>
+    
+    <ResponseField name="total" type="float">
+      Total amount
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string">
+      Order creation date (d/m/Y H:i format)
+    </ResponseField>
+    
+    <ResponseField name="empresa" type="object">
+      Business information
+    </ResponseField>
+    
+    <ResponseField name="productos" type="array">
+      Ordered products with pivot data
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/cliente/mis-pedidos \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+[
+  {
+    "id": 42,
+    "empresa_id": 1,
+    "user_id": 7,
+    "estado": "Listo",
+    "estado_pago": "aprobado",
+    "hora_recogida": "15:30",
+    "total": 50000,
+    "created_at": "15/02/2024 10:30",
+    "empresa": {
+      "id": 1,
+      "nombre": "Café Aromático"
+    },
+    "productos": [
+      {
+        "id": 15,
+        "nombre": "Café Colombiano Premium",
+        "pivot": {
+          "cantidad": 2,
+          "precio_unitario": 25000
+        }
+      }
+    ]
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## Cancel Order
+
+```http
+POST /api/cliente/pedidos/{id}/cancelar
+```
+
+Cancel a pending order. Only orders with "Pendiente" status can be canceled. If the order was already paid, stock will be returned to inventory.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  Order ID to cancel
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success or error message
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.beanquick.com/api/cliente/pedidos/42/cancelar \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "message": "Pedido cancelado y stock devuelto"
+}
+```
+
+```json 404 Not Found
+{
+  "message": "Pedido no encontrado"
+}
+```
+
+```json 400 Invalid Status
+{
+  "message": "No puedes cancelar un pedido Listo"
+}
+```
+</ResponseExample>
+
+---
+
+## Process Payment
+
+```http
+POST /api/cliente/pedidos/{id}/pagar
+```
+
+Initiate payment process for an order using Mercado Pago integration.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  Order ID to pay for
+</ParamField>
+
+### Response
+
+Returns payment preference data from Mercado Pago, including the checkout URL.
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.beanquick.com/api/cliente/pedidos/42/pagar \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "init_point": "https://www.mercadopago.com/checkout/v1/redirect?pref_id=123456789",
+  "preference_id": "123456789"
+}
+```
+</ResponseExample>

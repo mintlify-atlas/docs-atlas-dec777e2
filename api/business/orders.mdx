@@ -1,0 +1,206 @@
+---
+title: 'Order Management'
+description: 'View and manage incoming customer orders'
+icon: 'receipt'
+---
+
+## List Business Orders
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/empresa/pedidos \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</CodeGroup>
+
+Retrieves all paid orders received by the authenticated business, ordered by creation date (oldest first).
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Response
+
+Returns an array of order objects:
+
+<ResponseField name="[].id" type="integer">
+  Order ID
+</ResponseField>
+
+<ResponseField name="[].user_id" type="integer">
+  Customer user ID
+</ResponseField>
+
+<ResponseField name="[].empresa_id" type="integer">
+  Business ID
+</ResponseField>
+
+<ResponseField name="[].estado" type="string">
+  Order fulfillment status. Possible values:
+  - `Pendiente` - Order placed, awaiting preparation
+  - `Preparando` - Order is being prepared
+  - `Listo` - Order is ready for pickup
+  - `Entregado` - Order has been delivered/picked up
+  - `Cancelado` - Order was cancelled
+</ResponseField>
+
+<ResponseField name="[].estado_pago" type="string">
+  Payment status:
+  - `pendiente` - Payment pending
+  - `aprobado` - Payment confirmed
+  - `rechazado` - Payment rejected
+</ResponseField>
+
+<ResponseField name="[].hora_recogida" type="string">
+  Scheduled pickup time (format: HH:mm)
+</ResponseField>
+
+<ResponseField name="[].total" type="float">
+  Order total amount
+</ResponseField>
+
+<ResponseField name="[].created_at" type="string">
+  Order creation date (format: dd/mm/yyyy HH:mm)
+</ResponseField>
+
+<ResponseField name="[].productos" type="array">
+  Array of products in the order
+  
+  <Expandable title="productos[] properties">
+    <ResponseField name="id" type="integer">
+      Product ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Product name
+    </ResponseField>
+    
+    <ResponseField name="precio" type="float">
+      Current product price
+    </ResponseField>
+    
+    <ResponseField name="pivot.cantidad" type="integer">
+      Quantity ordered
+    </ResponseField>
+    
+    <ResponseField name="pivot.precio_unitario" type="float">
+      Unit price at time of order (may differ from current price)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="[].cliente" type="object">
+  Customer information
+  
+  <Expandable title="cliente properties">
+    <ResponseField name="id" type="integer">
+      Customer user ID
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Customer name
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Notes
+
+- Only returns orders with `estado_pago` = `aprobado`
+- Orders are sorted by `created_at` ascending (oldest first) to help with order fulfillment queue
+
+---
+
+## Update Order Status
+
+<CodeGroup>
+```bash cURL
+curl -X PATCH https://api.beanquick.com/api/empresa/pedidos/123/estado \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "estado": "Preparando"
+  }'
+```
+</CodeGroup>
+
+Updates the fulfillment status of an order. Used to track order progress from preparation to delivery.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Path Parameters
+
+<ParamField path="pedido" type="integer" required>
+  Order ID
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="estado" type="string" required>
+  New order status. Must be one of:
+  - `Preparando` - Order is being prepared
+  - `Listo` - Order is ready for pickup
+  - `Entregado` - Order has been delivered
+  - `Cancelado` - Order cancelled by business
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message: "Estado actualizado con éxito"
+</ResponseField>
+
+<ResponseField name="pedido" type="object">
+  Updated order data
+</ResponseField>
+
+### Order Status Flow
+
+Typical order progression:
+
+1. **Pendiente** → Initial state after payment approval
+2. **Preparando** → Business starts preparing the order
+3. **Listo** → Order is ready for customer pickup
+4. **Entregado** → Customer has received the order
+
+Alternatively, orders can be moved to **Cancelado** at any stage.
+
+### Validation Rules
+
+- Orders can only be updated if `estado_pago` = `aprobado`
+- Attempting to update unpaid orders returns a 400 error with message: "No puedes modificar un pedido que no ha sido pagado."
+- Status value is case-insensitive (automatically converted to proper case)
+
+### Error Responses
+
+<ResponseField name="message" type="string">
+  Error message
+</ResponseField>
+
+**400 Bad Request** - Order not paid yet:
+```json
+{
+  "message": "No puedes modificar un pedido que no ha sido pagado."
+}
+```
+
+**422 Validation Error** - Invalid status value:
+```json
+{
+  "message": "The selected estado is invalid.",
+  "errors": {
+    "estado": ["The selected estado is invalid."]
+  }
+}
+```
+
+**404 Not Found** - Order doesn't exist:
+```json
+{
+  "message": "No query results for model [App\\Models\\Pedido]."
+}
+```

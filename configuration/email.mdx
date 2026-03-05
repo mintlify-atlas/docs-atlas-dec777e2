@@ -1,0 +1,349 @@
+---
+title: Email Configuration
+description: Configure email delivery for user notifications and business communications
+---
+
+BeanQuick sends transactional emails for user registration, business activation requests, and order confirmations. Configure email delivery using various providers like SMTP, Mailgun, or Amazon SES.
+
+## Email Providers
+
+Laravel supports multiple mail drivers:
+
+- **SMTP** - Standard email protocol (works with Gmail, Outlook, etc.)
+- **Mailgun** - Transactional email service
+- **Amazon SES** - AWS email service
+- **Postmark** - Email delivery service
+- **Resend** - Modern email API
+- **Log** - Write emails to log files (development only)
+
+## SMTP Configuration
+
+SMTP is the most common method for sending emails.
+
+### Basic SMTP Setup
+
+```bash .env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@example.com
+MAIL_PASSWORD=your-smtp-password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="noreply@beanquick.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `MAIL_MAILER` | Mail driver to use | `smtp` |
+| `MAIL_HOST` | SMTP server hostname | `smtp.gmail.com` |
+| `MAIL_PORT` | SMTP server port | `587` (TLS), `465` (SSL) |
+| `MAIL_USERNAME` | SMTP username | Your email address |
+| `MAIL_PASSWORD` | SMTP password | App-specific password |
+| `MAIL_ENCRYPTION` | Encryption method | `tls` or `ssl` |
+| `MAIL_FROM_ADDRESS` | Default sender email | `noreply@beanquick.com` |
+| `MAIL_FROM_NAME` | Default sender name | `BeanQuick` |
+
+### Gmail SMTP
+
+<Steps>
+  <Step title="Enable 2-Factor Authentication">
+    Go to your Google Account settings and enable 2FA.
+  </Step>
+  
+  <Step title="Generate App Password">
+    Visit [App Passwords](https://myaccount.google.com/apppasswords) and create a new app password.
+  </Step>
+  
+  <Step title="Configure .env">
+    ```bash
+    MAIL_MAILER=smtp
+    MAIL_HOST=smtp.gmail.com
+    MAIL_PORT=587
+    MAIL_USERNAME=your-email@gmail.com
+    MAIL_PASSWORD=your-16-char-app-password
+    MAIL_ENCRYPTION=tls
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+Never use your actual Gmail password. Always generate an app-specific password.
+</Warning>
+
+## Development Configuration
+
+### Log Driver (Recommended for Local Development)
+
+Write emails to log files instead of sending them:
+
+```bash .env
+MAIL_MAILER=log
+MAIL_LOG_CHANNEL=stack
+```
+
+Emails will be written to `storage/logs/laravel.log`.
+
+### MailHog (Local Email Testing)
+
+MailHog captures emails sent from your application:
+
+```bash .env
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+```
+
+View captured emails at `http://localhost:8025`.
+
+### Mailtrap (Cloud Email Testing)
+
+[Mailtrap](https://mailtrap.io/) is a fake SMTP server for testing:
+
+```bash .env
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your-mailtrap-username
+MAIL_PASSWORD=your-mailtrap-password
+MAIL_ENCRYPTION=tls
+```
+
+## Production Email Services
+
+### Mailgun
+
+```bash .env
+MAIL_MAILER=mailgun
+MAILGUN_DOMAIN=mg.yourdomain.com
+MAILGUN_SECRET=key-your-mailgun-api-key
+MAILGUN_ENDPOINT=api.mailgun.net
+```
+
+Install the Mailgun package:
+
+```bash
+composer require symfony/mailgun-mailer symfony/http-client
+```
+
+### Amazon SES
+
+```bash .env
+MAIL_MAILER=ses
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_DEFAULT_REGION=us-east-1
+```
+
+Install the AWS SDK:
+
+```bash
+composer require aws/aws-sdk-php
+```
+
+### Postmark
+
+```bash .env
+MAIL_MAILER=postmark
+POSTMARK_API_KEY=your-postmark-server-token
+```
+
+Install the Postmark package:
+
+```bash
+composer require symfony/postmark-mailer symfony/http-client
+```
+
+### Resend
+
+```bash .env
+MAIL_MAILER=resend
+RESEND_API_KEY=your-resend-api-key
+```
+
+Install the Resend package:
+
+```bash
+composer require symfony/resend-mailer symfony/http-client
+```
+
+## Email Templates
+
+BeanQuick includes email templates for:
+
+### Welcome Email
+
+Sent when a new user registers:
+
+```php
+App\Mail\BienvenidaMail
+```
+
+Template location: `resources/views/emails/bienvenida.blade.php`
+
+**Subject:** "¡Bienvenido a BeanQuick!"
+
+This email welcomes new users to the platform.
+
+### Business Activation Request
+
+Sent to administrators when a vendor requests business activation. The email includes a secure token link for approval.
+
+### Email Verification
+
+Laravel's built-in email verification for confirming user email addresses.
+
+## Queue Configuration for Emails
+
+For better performance, send emails asynchronously using queues:
+
+```bash .env
+QUEUE_CONNECTION=database
+```
+
+The `BienvenidaMail` class uses the `Queueable` trait, so emails are automatically queued.
+
+Run the queue worker:
+
+```bash
+php artisan queue:work
+```
+
+For development with automatic reloading:
+
+```bash
+php artisan queue:listen --tries=1
+```
+
+<Tip>
+Queued emails improve application performance by processing email delivery in the background.
+</Tip>
+
+## Testing Email Delivery
+
+### Send Test Email
+
+Test your email configuration:
+
+```bash
+php artisan tinker
+```
+
+```php
+Mail::raw('This is a test email from BeanQuick', function ($message) {
+    $message->to('your-email@example.com')
+            ->subject('BeanQuick Test Email');
+});
+```
+
+### Check Mail Logs
+
+When using the `log` driver, check logs:
+
+```bash
+tail -f storage/logs/laravel.log
+```
+
+## Customizing Email Templates
+
+Email templates are located in `resources/views/emails/`.
+
+Edit the welcome email template:
+
+```bash
+resources/views/emails/bienvenida.blade.php
+```
+
+Available variables in templates:
+
+- `$user` - User object with name, email, etc.
+- `$token` - Verification or activation token (for specific emails)
+
+## Email Security
+
+<Steps>
+  <Step title="Use App Passwords">
+    Never use your primary email password. Use app-specific passwords.
+  </Step>
+  
+  <Step title="Enable TLS/SSL">
+    Always use encrypted connections (`MAIL_ENCRYPTION=tls`).
+  </Step>
+  
+  <Step title="Verify Sender Domain">
+    Set up SPF and DKIM records for your sending domain to prevent spoofing.
+  </Step>
+  
+  <Step title="Rate Limiting">
+    Implement rate limiting to prevent email abuse.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Emails Not Sending
+
+1. Check mail configuration:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+2. Test SMTP connection:
+
+```bash
+php artisan tinker
+Mail::raw('Test', fn($m) => $m->to('test@example.com')->subject('Test'));
+```
+
+3. Check Laravel logs:
+
+```bash
+tail -f storage/logs/laravel.log
+```
+
+### Connection Timeout
+
+Verify firewall allows outbound connections on ports 587 (TLS) or 465 (SSL).
+
+### Authentication Failed
+
+Double-check `MAIL_USERNAME` and `MAIL_PASSWORD`. For Gmail, ensure you're using an app password.
+
+### Queue Not Processing
+
+Ensure the queue worker is running:
+
+```bash
+php artisan queue:work --verbose
+```
+
+## Production Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Dedicated Email Service" icon="envelope">
+    Services like Mailgun or Amazon SES provide better deliverability than SMTP.
+  </Card>
+  
+  <Card title="Enable Queue Workers" icon="list-check">
+    Process emails asynchronously to improve response times.
+  </Card>
+  
+  <Card title="Monitor Delivery" icon="chart-line">
+    Track email delivery rates and bounce notifications.
+  </Card>
+  
+  <Card title="Set Up SPF/DKIM" icon="shield">
+    Configure DNS records to improve email deliverability.
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+- [Laravel Mail Documentation](https://laravel.com/docs/mail)
+- [Laravel Queue Documentation](https://laravel.com/docs/queues)
+- [Laravel Notifications](https://laravel.com/docs/notifications)

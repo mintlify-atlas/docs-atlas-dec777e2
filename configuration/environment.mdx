@@ -1,0 +1,179 @@
+---
+title: Environment Variables
+description: Configure BeanQuick using environment variables for different deployment scenarios
+---
+
+BeanQuick uses environment variables to configure the application for different environments (development, staging, production). All configuration is managed through the `.env` file in the back-end directory.
+
+## Initial Setup
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+Generate an application key:
+
+```bash
+php artisan key:generate
+```
+
+## Application Settings
+
+### Basic Configuration
+
+```bash
+APP_NAME=BeanQuick
+APP_ENV=local
+APP_KEY=base64:your-generated-key-here
+APP_DEBUG=true
+APP_URL=http://localhost
+```
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `APP_NAME` | Application name used in emails and UI | `BeanQuick` |
+| `APP_ENV` | Environment mode | `local`, `production` |
+| `APP_KEY` | Encryption key (generate with `php artisan key:generate`) | `base64:...` |
+| `APP_DEBUG` | Show detailed error messages | `true` (dev), `false` (prod) |
+| `APP_URL` | Base URL of the back-end application | `http://localhost` |
+
+<Warning>
+Never set `APP_DEBUG=true` in production! This exposes sensitive application internals.
+</Warning>
+
+### Localization
+
+```bash
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+```
+
+| Variable | Description | Options |
+|----------|-------------|----------|
+| `APP_LOCALE` | Default application language | `en`, `es` |
+| `APP_FALLBACK_LOCALE` | Fallback language if translation missing | `en`, `es` |
+| `APP_FAKER_LOCALE` | Locale for generating test data | `en_US`, `es_ES` |
+
+### Security
+
+```bash
+BCRYPT_ROUNDS=12
+```
+
+| Variable | Description | Recommended |
+|----------|-------------|-------------|
+| `BCRYPT_ROUNDS` | Password hashing rounds (higher = more secure but slower) | `12` (dev), `14` (prod) |
+
+## Logging
+
+```bash
+LOG_CHANNEL=stack
+LOG_STACK=single
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+```
+
+| Variable | Description | Options |
+|----------|-------------|----------|
+| `LOG_CHANNEL` | Logging driver | `stack`, `single`, `daily` |
+| `LOG_STACK` | Stack channel configuration | `single`, `daily` |
+| `LOG_LEVEL` | Minimum log level | `debug`, `info`, `warning`, `error` |
+
+<Tip>
+In production, use `LOG_LEVEL=error` and `LOG_STACK=daily` to prevent log files from growing too large.
+</Tip>
+
+## Session & Cache
+
+```bash
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=null
+
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+```
+
+| Variable | Description | Options |
+|----------|-------------|----------|
+| `SESSION_DRIVER` | Where to store user sessions | `database`, `file`, `redis` |
+| `SESSION_LIFETIME` | Session lifetime in minutes | `120` |
+| `CACHE_STORE` | Cache backend | `database`, `file`, `redis` |
+| `QUEUE_CONNECTION` | Queue driver for background jobs | `database`, `redis`, `sync` |
+
+## Frontend Integration
+
+```bash
+APP_FRONTEND_URL=http://localhost:5173
+WEBHOOK_URL=http://localhost:8000/api/webhook/mercadopago
+```
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `APP_FRONTEND_URL` | URL of the frontend application | `http://localhost:5173` |
+| `WEBHOOK_URL` | Public URL for payment webhooks | `https://yourdomain.com/api/webhook/mercadopago` |
+
+<Warning>
+`WEBHOOK_URL` must be publicly accessible for Mercado Pago to send payment notifications. Use ngrok or similar tools for local testing.
+</Warning>
+
+## Development vs Production
+
+### Development Settings
+
+```bash
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost
+LOG_LEVEL=debug
+MAIL_MAILER=log
+```
+
+### Production Settings
+
+```bash
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+LOG_LEVEL=error
+MAIL_MAILER=smtp
+```
+
+## Security Best Practices
+
+<Steps>
+  <Step title="Never commit .env files">
+    The `.env` file contains sensitive credentials and should never be committed to version control.
+  </Step>
+  
+  <Step title="Use strong APP_KEY">
+    Always generate a new `APP_KEY` using `php artisan key:generate` for each environment.
+  </Step>
+  
+  <Step title="Disable debug in production">
+    Set `APP_DEBUG=false` in production to prevent exposing stack traces and application details.
+  </Step>
+  
+  <Step title="Use HTTPS in production">
+    Always set `APP_URL` to use `https://` in production environments.
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Configuration" icon="database" href="/configuration/database">
+    Configure database connections and migrations
+  </Card>
+  <Card title="Email Configuration" icon="envelope" href="/configuration/email">
+    Set up email delivery for notifications
+  </Card>
+  <Card title="Payment Gateway" icon="credit-card" href="/configuration/payment-gateway">
+    Configure Mercado Pago for payments
+  </Card>
+</CardGroup>

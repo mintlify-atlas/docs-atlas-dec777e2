@@ -1,0 +1,180 @@
+---
+title: 'Business Profile'
+description: 'Manage business profile information and operational status'
+icon: 'store'
+---
+
+## Get Business Profile
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/empresa/perfil \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</CodeGroup>
+
+Retrieves the authenticated business profile information.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Response
+
+<ResponseField name="status" type="string">
+  Response status (success)
+</ResponseField>
+
+<ResponseField name="empresa" type="object">
+  Business profile data
+  
+  <Expandable title="empresa properties">
+    <ResponseField name="id" type="integer">
+      Business ID
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="integer">
+      Associated user ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Business name
+    </ResponseField>
+    
+    <ResponseField name="nit" type="string">
+      Tax identification number
+    </ResponseField>
+    
+    <ResponseField name="direccion" type="string">
+      Business address
+    </ResponseField>
+    
+    <ResponseField name="telefono" type="string">
+      Contact phone number
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string">
+      Business description
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      Logo file path (storage path)
+    </ResponseField>
+    
+    <ResponseField name="logo_url" type="string">
+      Public URL for logo image
+    </ResponseField>
+    
+    <ResponseField name="foto_local" type="string">
+      Store photo file path (storage path)
+    </ResponseField>
+    
+    <ResponseField name="foto_local_url" type="string">
+      Public URL for store photo
+    </ResponseField>
+    
+    <ResponseField name="is_open" type="boolean">
+      Whether the business is currently open for orders
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Update Business Profile
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.beanquick.com/api/empresa/update \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: multipart/form-data" \
+  -F "nombre=Coffee Shop" \
+  -F "direccion=123 Main St" \
+  -F "telefono=555-0123" \
+  -F "descripcion=Best coffee in town" \
+  -F "logo=@/path/to/logo.png" \
+  -F "foto_local=@/path/to/store.jpg"
+```
+</CodeGroup>
+
+Updates business profile information. Uses POST method to support file uploads.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Body Parameters
+
+<ParamField body="nombre" type="string" required>
+  Business name (max 255 characters)
+</ParamField>
+
+<ParamField body="direccion" type="string">
+  Business address (max 255 characters)
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Contact phone number (max 50 characters)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Business description
+</ParamField>
+
+<ParamField body="logo" type="file">
+  Logo image file (jpeg, png, jpg, webp; max 2MB)
+</ParamField>
+
+<ParamField body="foto_local" type="file">
+  Store photo (jpeg, png, jpg, webp; max 4MB)
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message: "Empresa actualizada correctamente."
+</ResponseField>
+
+<ResponseField name="empresa" type="object">
+  Updated business profile data (same structure as GET /perfil)
+</ResponseField>
+
+### Notes
+
+- When uploading a new logo or store photo, the previous image is automatically deleted from storage
+- Images are stored in `empresas/logos` and `empresas/locales` directories respectively
+- The response includes `logo_url` and `foto_local_url` accessors for public image URLs
+
+---
+
+## Toggle Business Status
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.beanquick.com/api/empresa/toggle-estado \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</CodeGroup>
+
+Toggles the business open/closed status. This controls whether customers can place new orders.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Response
+
+<ResponseField name="message" type="string">
+  Status message indicating current state:
+  - "La tienda está ahora ABIERTA" (store is now open)
+  - "La tienda está ahora CERRADA" (store is now closed)
+</ResponseField>
+
+<ResponseField name="is_open" type="boolean">
+  Current open/closed status after toggle
+</ResponseField>

@@ -1,0 +1,298 @@
+---
+title: 'Products'
+description: 'Browse featured products, categories, and product ratings'
+---
+
+## Get Featured Products
+
+<Info>
+This endpoint is public and does not require authentication.
+</Info>
+
+```http
+GET /api/productos/destacados
+```
+
+Retrieve the top 4 highest-rated products across all businesses. Returns only products that have received at least one rating.
+
+### Response
+
+<ResponseField name="productos" type="array">
+  Array of top-rated product objects
+  
+  <Expandable title="Product Object">
+    <ResponseField name="id" type="integer">
+      Product ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Product name
+    </ResponseField>
+    
+    <ResponseField name="precio" type="float">
+      Product price
+    </ResponseField>
+    
+    <ResponseField name="imagen" type="string">
+      Image file path
+    </ResponseField>
+    
+    <ResponseField name="empresa_id" type="integer">
+      Business ID that sells this product
+    </ResponseField>
+    
+    <ResponseField name="calificaciones_avg_estrellas" type="float">
+      Average rating rounded to 1 decimal (1-5 stars)
+    </ResponseField>
+    
+    <ResponseField name="empresa" type="object">
+      Business information
+      
+      <Expandable title="Business Fields">
+        <ResponseField name="id" type="integer">
+          Business ID
+        </ResponseField>
+        
+        <ResponseField name="nombre" type="string">
+          Business name
+        </ResponseField>
+        
+        <ResponseField name="logo" type="string">
+          Logo file path
+        </ResponseField>
+        
+        <ResponseField name="logo_url" type="string">
+          Full URL to business logo
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/productos/destacados \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+[
+  {
+    "id": 12,
+    "nombre": "Café Orgánico",
+    "precio": 28000,
+    "imagen": "productos/cafe_organico.jpg",
+    "empresa_id": 3,
+    "calificaciones_avg_estrellas": 4.8,
+    "empresa": {
+      "id": 3,
+      "nombre": "Eco Coffee",
+      "logo": "empresas/eco_logo.jpg",
+      "logo_url": "https://api.beanquick.com/storage/empresas/eco_logo.jpg"
+    }
+  },
+  {
+    "id": 8,
+    "nombre": "Cappuccino Mix",
+    "precio": 15000,
+    "imagen": "productos/cappuccino.jpg",
+    "empresa_id": 1,
+    "calificaciones_avg_estrellas": 4.6,
+    "empresa": {
+      "id": 1,
+      "nombre": "Café Aromático",
+      "logo": "empresas/aromatico_logo.jpg",
+      "logo_url": "https://api.beanquick.com/storage/empresas/aromatico_logo.jpg"
+    }
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## List Categories
+
+<Info>
+This endpoint is public and does not require authentication.
+</Info>
+
+```http
+GET /api/categorias
+```
+
+Retrieve all product categories available in the marketplace.
+
+### Response
+
+<ResponseField name="categorias" type="array">
+  Array of category objects
+  
+  <Expandable title="Category Object">
+    <ResponseField name="id" type="integer">
+      Category ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Category name
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string">
+      Creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="string">
+      Last update timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/categorias \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+[
+  {
+    "id": 1,
+    "nombre": "Café en Grano",
+    "created_at": "2024-01-10T09:00:00.000000Z",
+    "updated_at": "2024-01-10T09:00:00.000000Z"
+  },
+  {
+    "id": 2,
+    "nombre": "Café Molido",
+    "created_at": "2024-01-10T09:05:00.000000Z",
+    "updated_at": "2024-01-10T09:05:00.000000Z"
+  },
+  {
+    "id": 3,
+    "nombre": "Accesorios",
+    "created_at": "2024-01-10T09:10:00.000000Z",
+    "updated_at": "2024-01-10T09:10:00.000000Z"
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## Get Product Ratings
+
+<Info>
+This endpoint is public and does not require authentication.
+</Info>
+
+```http
+GET /api/productos/{id}/calificaciones
+```
+
+Retrieve all customer ratings and reviews for a specific product.
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  Product ID
+</ParamField>
+
+### Response
+
+<ResponseField name="calificaciones" type="array">
+  Array of rating objects, sorted by most recent first
+  
+  <Expandable title="Rating Object">
+    <ResponseField name="id" type="integer">
+      Rating ID
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="integer">
+      ID of the user who created the rating
+    </ResponseField>
+    
+    <ResponseField name="pedido_id" type="integer">
+      Order ID associated with this rating
+    </ResponseField>
+    
+    <ResponseField name="producto_id" type="integer">
+      Product ID
+    </ResponseField>
+    
+    <ResponseField name="estrellas" type="integer">
+      Star rating (1-5)
+    </ResponseField>
+    
+    <ResponseField name="comentario" type="string">
+      Optional review comment
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string">
+      When the rating was created
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="string">
+      When the rating was last updated
+    </ResponseField>
+    
+    <ResponseField name="usuario" type="object">
+      User information (limited fields for privacy)
+      
+      <Expandable title="User Fields">
+        <ResponseField name="id" type="integer">
+          User ID
+        </ResponseField>
+        
+        <ResponseField name="name" type="string">
+          User display name
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/productos/15/calificaciones \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+[
+  {
+    "id": 42,
+    "user_id": 7,
+    "pedido_id": 18,
+    "producto_id": 15,
+    "estrellas": 5,
+    "comentario": "Excelente calidad, muy recomendado",
+    "created_at": "2024-02-10T16:30:00.000000Z",
+    "updated_at": "2024-02-10T16:30:00.000000Z",
+    "usuario": {
+      "id": 7,
+      "name": "María González"
+    }
+  },
+  {
+    "id": 38,
+    "user_id": 12,
+    "pedido_id": 15,
+    "producto_id": 15,
+    "estrellas": 4,
+    "comentario": "Buen producto, entrega rápida",
+    "created_at": "2024-02-08T11:20:00.000000Z",
+    "updated_at": "2024-02-08T11:20:00.000000Z",
+    "usuario": {
+      "id": 12,
+      "name": "Carlos Rodríguez"
+    }
+  }
+]
+```
+</ResponseExample>

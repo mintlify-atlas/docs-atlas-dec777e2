@@ -1,0 +1,320 @@
+---
+title: Database Configuration
+description: Configure and manage database connections for BeanQuick
+---
+
+BeanQuick supports multiple database drivers including MySQL, PostgreSQL, SQLite, MariaDB, and SQL Server. The default configuration uses MySQL for production and SQLite for development.
+
+## Database Drivers
+
+Laravel supports the following database systems:
+
+- **MySQL** 8.0+ (recommended for production)
+- **MariaDB** 10.3+
+- **PostgreSQL** 12.0+
+- **SQLite** 3.35.0+ (great for development)
+- **SQL Server** 2017+
+
+## MySQL Configuration (Recommended)
+
+MySQL is the recommended database for production deployments.
+
+### Environment Variables
+
+```bash .env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=beanquick
+DB_USERNAME=root
+DB_PASSWORD=your_secure_password
+```
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `DB_CONNECTION` | Database driver to use | `mysql` |
+| `DB_HOST` | Database server hostname | `127.0.0.1` |
+| `DB_PORT` | Database server port | `3306` |
+| `DB_DATABASE` | Database name | `beanquick` |
+| `DB_USERNAME` | Database user | `root` |
+| `DB_PASSWORD` | Database password | (empty) |
+
+### Character Set
+
+```bash .env
+DB_CHARSET=utf8mb4
+DB_COLLATION=utf8mb4_unicode_ci
+```
+
+BeanQuick uses `utf8mb4` encoding to support full Unicode characters including emojis.
+
+### SSL Connection
+
+For secure database connections:
+
+```bash .env
+MYSQL_ATTR_SSL_CA=/path/to/ca-cert.pem
+```
+
+## PostgreSQL Configuration
+
+For PostgreSQL deployments:
+
+```bash .env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=beanquick
+DB_USERNAME=postgres
+DB_PASSWORD=your_secure_password
+DB_CHARSET=utf8
+```
+
+PostgreSQL-specific settings:
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `DB_PORT` | PostgreSQL port | `5432` |
+| `DB_CHARSET` | Character encoding | `utf8` |
+
+## SQLite Configuration (Development)
+
+SQLite is ideal for local development and testing:
+
+```bash .env
+DB_CONNECTION=sqlite
+DB_DATABASE=/absolute/path/to/database.sqlite
+```
+
+Create the SQLite database file:
+
+```bash
+touch database/database.sqlite
+```
+
+<Tip>
+SQLite doesn't require a separate server process, making it perfect for quick local development.
+</Tip>
+
+## Running Migrations
+
+Migrations create the database schema for BeanQuick.
+
+### First-Time Setup
+
+Run all migrations to create tables:
+
+```bash
+php artisan migrate
+```
+
+For production deployments, use the `--force` flag:
+
+```bash
+php artisan migrate --force
+```
+
+### Check Migration Status
+
+See which migrations have been run:
+
+```bash
+php artisan migrate:status
+```
+
+### Rollback Migrations
+
+<Warning>
+Rolling back migrations will delete data. Only use in development or with proper backups.
+</Warning>
+
+```bash
+# Rollback the last batch
+php artisan migrate:rollback
+
+# Rollback all migrations
+php artisan migrate:reset
+
+# Rollback and re-run all migrations
+php artisan migrate:refresh
+```
+
+## Database Schema
+
+BeanQuick includes migrations for the following core tables:
+
+- `users` - User accounts and authentication
+- `empresas` - Business/vendor profiles
+- `categorias` - Product categories
+- `productos` - Product catalog
+- `carritos` - Shopping carts
+- `carrito_productos` - Cart items
+- `pedidos` - Orders
+- `pedido_productos` - Order items
+- `calificaciones` - Product/business ratings
+- `solicitudes_empresa` - Business registration requests
+- `personal_access_tokens` - API authentication tokens (Laravel Sanctum)
+- `jobs` - Queue jobs
+- `cache` - Cache storage
+- `sessions` - User sessions
+
+## Seeding Test Data
+
+BeanQuick includes seeders to populate the database with test data.
+
+### Available Seeders
+
+```bash
+# Run all seeders
+php artisan db:seed
+
+# Run specific seeder
+php artisan db:seed --class=CategoriaSeeder
+php artisan db:seed --class=AdminUserSeeder
+```
+
+### Fresh Migration with Seeding
+
+Drop all tables, re-run migrations, and seed:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+<Warning>
+`migrate:fresh` will drop all tables and delete all data. Only use in development!
+</Warning>
+
+## Queue Tables
+
+BeanQuick uses database-backed queues for background jobs:
+
+```bash .env
+QUEUE_CONNECTION=database
+```
+
+The `jobs` table stores queued jobs, and `failed_jobs` stores jobs that failed after all retry attempts.
+
+Run the queue worker:
+
+```bash
+php artisan queue:work
+
+# Or listen for new jobs
+php artisan queue:listen
+```
+
+## Database Backups
+
+<Steps>
+  <Step title="Regular Backups">
+    Schedule regular database backups using your hosting provider's tools or custom scripts.
+  </Step>
+  
+  <Step title="MySQL Dump">
+    ```bash
+    mysqldump -u username -p beanquick > backup-$(date +%Y%m%d).sql
+    ```
+  </Step>
+  
+  <Step title="PostgreSQL Dump">
+    ```bash
+    pg_dump -U username beanquick > backup-$(date +%Y%m%d).sql
+    ```
+  </Step>
+  
+  <Step title="Test Restores">
+    Regularly test your backup restoration process to ensure data integrity.
+  </Step>
+</Steps>
+
+## Performance Optimization
+
+### Database Connection Pooling
+
+For high-traffic applications, consider using connection pooling:
+
+```bash .env
+DB_SOCKET=/var/run/mysqld/mysqld.sock
+```
+
+### Redis for Sessions and Cache
+
+For better performance, use Redis instead of database storage:
+
+```bash .env
+SESSION_DRIVER=redis
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+### Query Optimization
+
+Monitor slow queries in production:
+
+```bash
+php artisan db:monitor --databases=mysql
+```
+
+## Troubleshooting
+
+### Connection Refused
+
+Ensure the database server is running and accessible:
+
+```bash
+# MySQL
+sudo systemctl status mysql
+
+# PostgreSQL
+sudo systemctl status postgresql
+```
+
+### Access Denied
+
+Verify database credentials and user permissions:
+
+```sql
+-- MySQL: Grant privileges
+GRANT ALL PRIVILEGES ON beanquick.* TO 'username'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### Migration Errors
+
+Clear cached configuration:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+## Production Recommendations
+
+<CardGroup cols={2}>
+  <Card title="Use MySQL or PostgreSQL" icon="database">
+    SQLite is not recommended for production deployments.
+  </Card>
+  
+  <Card title="Enable SSL Connections" icon="lock">
+    Use encrypted connections to the database server.
+  </Card>
+  
+  <Card title="Regular Backups" icon="clock">
+    Implement automated daily backups with off-site storage.
+  </Card>
+  
+  <Card title="Monitor Performance" icon="chart-line">
+    Use database monitoring tools to track query performance.
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+- [Laravel Database Documentation](https://laravel.com/docs/database)
+- [Laravel Migrations](https://laravel.com/docs/migrations)
+- [Laravel Seeding](https://laravel.com/docs/seeding)

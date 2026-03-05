@@ -1,0 +1,451 @@
+---
+title: Shopping Cart
+description: Session-based cart management with multi-vendor support and real-time stock validation
+---
+
+## Overview
+
+BeanQuick implements a persistent shopping cart system that allows customers to browse multiple businesses, add products to their cart, and manage quantities before checkout. The cart supports multi-vendor purchases with intelligent stock validation.
+
+## Cart Architecture
+
+### Database Schema
+
+The cart uses a many-to-many relationship between users and products through two tables:
+
+**carritos table:**
+```sql
+CREATE TABLE carritos (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+**carrito_productos pivot table:**
+```sql
+CREATE TABLE carrito_productos (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    carrito_id BIGINT NOT NULL,
+    producto_id BIGINT NOT NULL,
+    cantidad INT DEFAULT 1,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    FOREIGN KEY (carrito_id) REFERENCES carritos(id) ON DELETE CASCADE,
+    FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE
+);
+```
+
+### Model Relationships
+
+```php
+// Carrito.php:12
+protected $fillable = ['user_id'];
+
+public function usuario()
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
+
+public function productos()
+{
+    return $this->belongsToMany(Producto::class, 'carrito_productos')
+                ->withPivot('cantidad')
+                ->withTimestamps();
+}
+
+public function items()
+{
+    return $this->hasMany(CarritoProducto::class, 'carrito_id');
+}
+```
+
+## Cart Operations
+
+All cart operations require authentication and are scoped to the logged-in customer.
+
+### View Cart
+
+Returns all products in the user's cart with current stock levels and business information.
+
+**Endpoint:** `GET /api/cliente/carrito`
+
+```php
+// CarritoController.php:14
+public function index()
+{
+    $user = Auth::user();
+    $carrito = Carrito::firstOrCreate(['user_id' => $user->id]);
+
+    $productos = $carrito->productos()
+        ->with('empresa')
+        ->withPivot('cantidad')
+        ->get()
+        ->map(function ($producto) {
+            $producto->precio = (float) $producto->precio;
+            $producto->stock = (int) $producto->stock;
+            return $producto;
+        });
+
+    return response()->json($productos);
+}
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 5,
+    "empresa_id": 2,
+    "nombre": "Cappuccino",
+    "precio": 4.50,
+    "stock": 100,
+    "imagen_url": "http://localhost:8000/storage/productos/abc123.jpg",
+    "pivot": {
+      "carrito_id": 1,
+      "producto_id": 5,
+      "cantidad": 2
+    },
+    "empresa": {
+      "id": 2,
+      "nombre": "Café Luna",
+      "is_open": true
+    }
+  }
+]
+```
+
+### Add to Cart
+
+**Endpoint:** `POST /api/cliente/carrito/agregar/{productoId}`
+
+**Request Body:**
+```json
+{
+  "cantidad": 2
+}
+```
+
+**Implementation:**
+```php
+// CarritoController.php:33
+public function agregar(Request $request, $productoId): JsonResponse
+{
+    $request->validate(['cantidad' => 'required|integer|min:1']);
+
+    // Load product with business info
+    $producto = Producto::with('empresa')->findOrFail($productoId);
+
+    // BLOCK: Check if business is open
+    if (!$producto->empresa->is_open) {
+        return response()->json([
+            'error' => 'Esta tienda está cerrada actualmente.'
+        ], 403);
+    }
+
+    $user = Auth::user();
+    $carrito = Carrito::firstOrCreate(['user_id' => $user->id]);
+    
+    // Check if product already in cart
+    $carritoProducto = $carrito->productos()
+        ->where('producto_id', $productoId)
+        ->first();
+    
+    $cantidadActual = $carritoProducto ? $carritoProducto->pivot->cantidad : 0;
+    $nuevaCantidad = $cantidadActual + $request->cantidad;
+
+    // VALIDATE: Stock availability
+    if ($producto->stock < $nuevaCantidad) {
+        return response()->json([
+            'error' => "Lo sentimos, solo quedan {$producto->stock} unidades disponibles."
+        ], 422);
+    }
+
+    // Add or update quantity
+    if ($carritoProducto) {
+        $carrito->productos()->updateExistingPivot($productoId, [
+            'cantidad' => $nuevaCantidad
+        ]);
+    } else {
+        $carrito->productos()->attach($productoId, [
+            'cantidad' => $request->cantidad
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'Producto agregado.',
+        'productos' => $this->obtenerProductosCarrito($carrito)
+    ]);
+}
+```
+
+### Update Quantity
+
+**Endpoint:** `PUT /api/cliente/carrito/actualizar/{productoId}`
+
+**Request Body:**
+```json
+{
+  "cantidad": 5
+}
+```
+
+```php
+// CarritoController.php:73
+public function actualizar(Request $request, $productoId): JsonResponse
+{
+    $request->validate(['cantidad' => 'required|integer|min:1']);
+
+    $producto = Producto::with('empresa')->findOrFail($productoId);
+
+    // BLOCK: Closed business
+    if (!$producto->empresa->is_open) {
+        return response()->json([
+            'error' => 'No puedes modificar productos de una tienda cerrada.'
+        ], 403);
+    }
+
+    // VALIDATE: Stock
+    if ($producto->stock < $request->cantidad) {
+        return response()->json([
+            'error' => "Stock insuficiente."
+        ], 422);
+    }
+
+    $carrito = Carrito::where('user_id', Auth::id())->first();
+    if ($carrito) {
+        $carrito->productos()->updateExistingPivot($productoId, [
+            'cantidad' => $request->cantidad
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'Cantidad actualizada.',
+        'productos' => $this->obtenerProductosCarrito($carrito)
+    ]);
+}
+```
+
+### Remove Item
+
+**Endpoint:** `DELETE /api/cliente/carrito/eliminar/{productoId}`
+
+```php
+// CarritoController.php:116
+public function eliminar($productoId): JsonResponse
+{
+    $carrito = Carrito::where('user_id', Auth::id())->first();
+    
+    if ($carrito) {
+        $carrito->productos()->detach($productoId);
+    }
+
+    return response()->json([
+        'message' => 'Eliminado.',
+        'productos' => $this->obtenerProductosCarrito($carrito)
+    ]);
+}
+```
+
+### Empty Cart
+
+**Endpoint:** `POST /api/cliente/carrito/vaciar`
+
+```php
+// CarritoController.php:127
+public function vaciar(): JsonResponse
+{
+    $carrito = Carrito::where('user_id', Auth::id())->first();
+    
+    if ($carrito) {
+        $carrito->productos()->detach();
+    }
+
+    return response()->json([
+        'message' => 'Vaciado.',
+        'productos' => []
+    ]);
+}
+```
+
+## Cart Persistence
+
+### User-Based Storage
+
+Carts are tied to user accounts, not browser sessions. This provides:
+
+- **Cross-device access** - Cart syncs across devices when logged in
+- **Persistence** - Cart items remain even after logout
+- **Auto-creation** - Cart record created on first add-to-cart action
+
+```php
+// Auto-create cart if it doesn't exist
+$carrito = Carrito::firstOrCreate(['user_id' => $user->id]);
+```
+
+### Automatic Cleanup
+
+Carts are automatically emptied after successful payment:
+
+```php
+// PagoController.php:154
+if ($nuevoEstado === 'aprobado') {
+    $carrito = \App\Models\Carrito::where('user_id', $pedido->user_id)->first();
+    if ($carrito) {
+        $carrito->productos()->detach();
+    }
+}
+```
+
+## Multi-Vendor Cart Handling
+
+### Mixed Business Products
+
+Customers can add products from multiple businesses to their cart. However, **orders must be placed per business**.
+
+When creating an order, the system filters cart items by `empresa_id`:
+
+```php
+// PedidoController.php:66
+$productosTienda = $carrito->productos->filter(function ($producto) use ($request) {
+    return (int)$producto->empresa_id === (int)$request->empresa_id;
+});
+
+if ($productosTienda->isEmpty()) {
+    return response()->json([
+        'message' => 'No hay productos de esta empresa en tu carrito.'
+    ], 422);
+}
+```
+
+### Cart Grouping by Business
+
+Frontend implementations should group cart items by business:
+
+```javascript
+// Example grouping logic
+const groupedCart = cartItems.reduce((acc, item) => {
+  const businessId = item.empresa_id;
+  if (!acc[businessId]) {
+    acc[businessId] = {
+      empresa: item.empresa,
+      productos: []
+    };
+  }
+  acc[businessId].productos.push(item);
+  return acc;
+}, {});
+```
+
+## Stock Validation
+
+### Real-time Availability Checks
+
+The cart system validates stock at multiple points:
+
+1. **Adding to cart** - Checks available stock before adding
+2. **Updating quantity** - Validates new quantity against current stock
+3. **Creating order** - Final validation before order creation
+
+### Stock Response Format
+
+Products in cart responses include current stock levels:
+
+```json
+{
+  "id": 5,
+  "nombre": "Cappuccino",
+  "stock": 100,  // Current available stock
+  "pivot": {
+    "cantidad": 2  // Quantity in cart
+  }
+}
+```
+
+Frontends can use this to:
+- Display stock availability
+- Prevent quantity increases beyond available stock
+- Show "Low Stock" warnings
+- Disable checkout if stock insufficient
+
+### Business Closure Protection
+
+Customers cannot add or modify cart items from closed businesses:
+
+```php
+if (!$producto->empresa->is_open) {
+    return response()->json([
+        'error' => 'Esta tienda está cerrada actualmente.'
+    ], 403);
+}
+```
+
+## Helper Methods
+
+### Fetch Cart Products
+
+Internal helper to return formatted cart contents:
+
+```php
+// CarritoController.php:104
+private function obtenerProductosCarrito($carrito) 
+{
+    return $carrito->productos()
+        ->with('empresa')
+        ->withPivot('cantidad')
+        ->get()
+        ->map(function ($p) {
+            $p->precio = (float) $p->precio;
+            $p->stock = (int) $p->stock;
+            return $p;
+        });
+}
+```
+
+## API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/cliente/carrito` | Get all cart items |
+| POST | `/api/cliente/carrito/agregar/{productoId}` | Add product to cart |
+| PUT | `/api/cliente/carrito/actualizar/{productoId}` | Update item quantity |
+| DELETE | `/api/cliente/carrito/eliminar/{productoId}` | Remove item from cart |
+| POST | `/api/cliente/carrito/vaciar` | Empty entire cart |
+
+## Common Workflows
+
+### Add Product to Cart
+```http
+POST /api/cliente/carrito/agregar/5
+Authorization: Bearer {customer_token}
+Content-Type: application/json
+
+{
+  "cantidad": 2
+}
+```
+
+### Update Item Quantity
+```http
+PUT /api/cliente/carrito/actualizar/5
+Authorization: Bearer {customer_token}
+Content-Type: application/json
+
+{
+  "cantidad": 5
+}
+```
+
+### View Cart Before Checkout
+```http
+GET /api/cliente/carrito
+Authorization: Bearer {customer_token}
+```
+
+### Remove Item
+```http
+DELETE /api/cliente/carrito/eliminar/5
+Authorization: Bearer {customer_token}
+```

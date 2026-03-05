@@ -1,0 +1,262 @@
+---
+title: 'Categories'
+description: 'Manage product categories in BeanQuick'
+---
+
+## Overview
+
+The Categories API allows administrators to create and delete product categories. Categories can also be retrieved by public users for browsing products.
+
+<Note>
+**Public Endpoint**: `GET /api/categorias` is accessible without authentication
+
+**Admin Endpoints**: Create and delete operations require:
+- Valid Sanctum authentication token
+- User must have `admin` role
+</Note>
+
+---
+
+## List Categories
+
+<RequestExample>
+```bash curl
+curl -X GET https://api.beanquick.com/api/categorias \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+[
+  {
+    "id": 1,
+    "nombre": "Panadería",
+    "created_at": "2026-02-15T08:30:00.000000Z",
+    "updated_at": "2026-02-15T08:30:00.000000Z"
+  },
+  {
+    "id": 2,
+    "nombre": "Repostería",
+    "created_at": "2026-02-15T08:31:00.000000Z",
+    "updated_at": "2026-02-15T08:31:00.000000Z"
+  },
+  {
+    "id": 3,
+    "nombre": "Bebidas",
+    "created_at": "2026-02-15T08:32:00.000000Z",
+    "updated_at": "2026-02-15T08:32:00.000000Z"
+  }
+]
+```
+</ResponseExample>
+
+Retrieves all product categories in the system.
+
+### Endpoint
+
+<ParamField path="GET" type="string">
+  /api/categorias
+</ParamField>
+
+### Authentication
+
+<ResponseField name="Public" type="boolean">
+  This endpoint does not require authentication
+</ResponseField>
+
+### Response Fields
+
+<ResponseField name="id" type="integer">
+  Category ID
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Category name
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  Timestamp when category was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  Timestamp when category was last updated
+</ResponseField>
+
+---
+
+## Create Category
+
+<RequestExample>
+```bash curl
+curl -X POST https://api.beanquick.com/api/admin/categorias \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Cafetería"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Categoría creada correctamente.",
+  "categoria": {
+    "id": 4,
+    "nombre": "Cafetería",
+    "created_at": "2026-03-05T14:20:00.000000Z",
+    "updated_at": "2026-03-05T14:20:00.000000Z"
+  }
+}
+```
+</ResponseExample>
+
+Creates a new product category.
+
+### Endpoint
+
+<ParamField path="POST" type="string">
+  /api/admin/categorias
+</ParamField>
+
+### Request Body
+
+<ParamField body="nombre" type="string" required>
+  Category name. Must be unique across all categories.
+</ParamField>
+
+### Validation Rules
+
+- `nombre`: Required, must be a string, must be unique in the `categorias` table
+
+### Response Fields
+
+<ResponseField name="message" type="string">
+  Success confirmation message
+</ResponseField>
+
+<ResponseField name="categoria" type="object">
+  The newly created category object
+  
+  <ResponseField name="id" type="integer">
+    Category ID
+  </ResponseField>
+  
+  <ResponseField name="nombre" type="string">
+    Category name
+  </ResponseField>
+  
+  <ResponseField name="created_at" type="datetime">
+    Creation timestamp
+  </ResponseField>
+  
+  <ResponseField name="updated_at" type="datetime">
+    Last update timestamp
+  </ResponseField>
+</ResponseField>
+
+### Error Responses
+
+<ResponseExample>
+```json Duplicate Name
+{
+  "message": "The nombre has already been taken.",
+  "errors": {
+    "nombre": [
+      "The nombre has already been taken."
+    ]
+  }
+}
+```
+</ResponseExample>
+
+<ResponseExample>
+```json Server Error
+{
+  "message": "Error al crear la categoría.",
+  "error": "Database connection failed"
+}
+```
+</ResponseExample>
+
+---
+
+## Delete Category
+
+<RequestExample>
+```bash curl
+curl -X DELETE https://api.beanquick.com/api/admin/categorias/4 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Categoría eliminada correctamente."
+}
+```
+</ResponseExample>
+
+Deletes an existing category.
+
+### Endpoint
+
+<ParamField path="DELETE" type="string">
+  /api/admin/categorias/{id}
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the category to delete
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="message" type="string">
+  Confirmation message
+</ResponseField>
+
+### Error Responses
+
+<ResponseExample>
+```json Not Found
+{
+  "message": "Categoría no encontrada."
+}
+```
+</ResponseExample>
+
+<ResponseExample>
+```json Server Error
+{
+  "message": "Error al eliminar la categoría.",
+  "error": "Foreign key constraint violation"
+}
+```
+</ResponseExample>
+
+<Warning>
+Deleting a category that has associated products may fail due to foreign key constraints, depending on your database migration configuration.
+</Warning>
+
+---
+
+## Category Model
+
+The `Categoria` model has the following structure:
+
+### Database Fields
+
+- `id` - Primary key (auto-increment)
+- `nombre` - Category name (unique, string)
+- `created_at` - Creation timestamp
+- `updated_at` - Last update timestamp
+
+### Relationships
+
+- **productos**: One category has many products (`hasMany` relationship)

@@ -1,0 +1,360 @@
+---
+title: 'Businesses'
+description: 'Manage business accounts in BeanQuick'
+---
+
+## Overview
+
+The Businesses API allows administrators to view, update, and delete business accounts in the marketplace. These endpoints manage already-activated businesses (not pending applications).
+
+<Note>
+All business management endpoints require:
+- Valid Sanctum authentication token
+- User must have `admin` role
+</Note>
+
+<Info>
+For managing business **applications** (approval/rejection), see the [Business Applications API](/api/admin/applications).
+</Info>
+
+---
+
+## List All Businesses
+
+<RequestExample>
+```bash curl
+curl -X GET https://api.beanquick.com/api/admin/empresas \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+[
+  {
+    "id": 1,
+    "user_id": 10,
+    "nombre": "Panadería El Sol",
+    "nit": "987654321",
+    "direccion": "Calle 123 #45-67",
+    "telefono": "3001234567",
+    "descripcion": "Panadería artesanal con productos frescos diariamente",
+    "logo": "logos/abc123.jpg",
+    "foto_local": "locales/xyz789.jpg",
+    "is_open": true,
+    "logo_url": "https://api.beanquick.com/storage/logos/abc123.jpg",
+    "foto_local_url": "https://api.beanquick.com/storage/locales/xyz789.jpg",
+    "created_at": "2026-02-15T09:00:00.000000Z",
+    "updated_at": "2026-03-05T11:30:00.000000Z",
+    "usuario": {
+      "id": 10,
+      "name": "Carlos Mendez",
+      "email": "elsol@example.com",
+      "rol": "empresa"
+    }
+  },
+  {
+    "id": 2,
+    "user_id": 12,
+    "nombre": "Café Aroma",
+    "nit": "123456789",
+    "direccion": "Av. Principal #88-22",
+    "telefono": "3109876543",
+    "descripcion": "Café de especialidad",
+    "logo": "logos/def456.jpg",
+    "foto_local": "locales/uvw123.jpg",
+    "is_open": false,
+    "logo_url": "https://api.beanquick.com/storage/logos/def456.jpg",
+    "foto_local_url": "https://api.beanquick.com/storage/locales/uvw123.jpg",
+    "created_at": "2026-02-18T14:20:00.000000Z",
+    "updated_at": "2026-03-04T16:45:00.000000Z",
+    "usuario": {
+      "id": 12,
+      "name": "Ana Ramirez",
+      "email": "aroma@example.com",
+      "rol": "empresa"
+    }
+  }
+]
+```
+</ResponseExample>
+
+Retrieves all active businesses in the system with their associated user information.
+
+### Endpoint
+
+<ParamField path="GET" type="string">
+  /api/admin/empresas
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="id" type="integer">
+  Business ID
+</ResponseField>
+
+<ResponseField name="user_id" type="integer">
+  Associated user account ID
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Business name
+</ResponseField>
+
+<ResponseField name="nit" type="string">
+  Tax identification number (NIT)
+</ResponseField>
+
+<ResponseField name="direccion" type="string">
+  Business address
+</ResponseField>
+
+<ResponseField name="telefono" type="string">
+  Phone number
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Business description
+</ResponseField>
+
+<ResponseField name="logo" type="string">
+  Relative path to logo file in storage
+</ResponseField>
+
+<ResponseField name="foto_local" type="string">
+  Relative path to location photo in storage
+</ResponseField>
+
+<ResponseField name="is_open" type="boolean">
+  Whether the business is currently accepting orders
+</ResponseField>
+
+<ResponseField name="logo_url" type="string">
+  Full URL to logo image (auto-generated)
+</ResponseField>
+
+<ResponseField name="foto_local_url" type="string">
+  Full URL to location photo (auto-generated)
+</ResponseField>
+
+<ResponseField name="usuario" type="object">
+  Associated user account information
+  
+  <ResponseField name="id" type="integer">
+    User ID
+  </ResponseField>
+  
+  <ResponseField name="name" type="string">
+    Owner's name
+  </ResponseField>
+  
+  <ResponseField name="email" type="string">
+    Owner's email
+  </ResponseField>
+  
+  <ResponseField name="rol" type="string">
+    User role (always `empresa` for businesses)
+  </ResponseField>
+</ResponseField>
+
+---
+
+## Update Business
+
+<RequestExample>
+```bash curl
+curl -X PUT https://api.beanquick.com/api/admin/empresas/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Panadería El Sol Dorado",
+    "nit": "987654321",
+    "telefono": "3001234567",
+    "direccion": "Calle 123 #45-67, Local 2"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Empresa actualizada con éxito",
+  "empresa": {
+    "id": 1,
+    "user_id": 10,
+    "nombre": "Panadería El Sol Dorado",
+    "nit": "987654321",
+    "direccion": "Calle 123 #45-67, Local 2",
+    "telefono": "3001234567",
+    "descripcion": "Panadería artesanal con productos frescos diariamente",
+    "logo": "logos/abc123.jpg",
+    "foto_local": "locales/xyz789.jpg",
+    "is_open": true,
+    "logo_url": "https://api.beanquick.com/storage/logos/abc123.jpg",
+    "foto_local_url": "https://api.beanquick.com/storage/locales/xyz789.jpg",
+    "created_at": "2026-02-15T09:00:00.000000Z",
+    "updated_at": "2026-03-05T15:20:00.000000Z",
+    "usuario": {
+      "id": 10,
+      "name": "Carlos Mendez",
+      "email": "elsol@example.com",
+      "rol": "empresa"
+    }
+  }
+}
+```
+</ResponseExample>
+
+Updates business information.
+
+### Endpoint
+
+<ParamField path="PUT" type="string">
+  /api/admin/empresas/{id}
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the business to update
+</ParamField>
+
+### Request Body
+
+<ParamField body="nombre" type="string" required>
+  Business name. Maximum 255 characters.
+</ParamField>
+
+<ParamField body="nit" type="string" required>
+  Tax identification number. Must be unique (excluding current business).
+</ParamField>
+
+<ParamField body="telefono" type="string" required>
+  Phone number
+</ParamField>
+
+<ParamField body="direccion" type="string" required>
+  Business address
+</ParamField>
+
+### Validation Rules
+
+- `nombre`: Required, string, max 255 characters
+- `nit`: Required, string, unique (ignoring current business)
+- `telefono`: Required, string
+- `direccion`: Required, string
+
+<Note>
+The response includes the `usuario` relationship to ensure the frontend has access to the owner's email and other account details.
+</Note>
+
+### Response Fields
+
+<ResponseField name="message" type="string">
+  Success confirmation message
+</ResponseField>
+
+<ResponseField name="empresa" type="object">
+  The updated business object with user relationship loaded
+</ResponseField>
+
+---
+
+## Delete Business
+
+<RequestExample>
+```bash curl
+curl -X DELETE https://api.beanquick.com/api/admin/empresas/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Empresa eliminada correctamente."
+}
+```
+</ResponseExample>
+
+Permanently deletes a business account.
+
+### Endpoint
+
+<ParamField path="DELETE" type="string">
+  /api/admin/empresas/{id}
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the business to delete
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="message" type="string">
+  Confirmation message
+</ResponseField>
+
+### Cascade Deletion
+
+<Warning>
+Deleting a business may cascade delete associated products if configured with `onDelete('cascade')` in your database migrations. Verify your migration configuration before deleting businesses with active products.
+</Warning>
+
+### Error Responses
+
+<ResponseExample>
+```json Server Error
+{
+  "message": "Error al eliminar empresa."
+}
+```
+</ResponseExample>
+
+---
+
+## Business Model
+
+The `Empresa` model has the following structure:
+
+### Database Fields
+
+- `id` - Primary key (auto-increment)
+- `user_id` - Foreign key to associated user account
+- `nombre` - Business name
+- `nit` - Tax identification number (unique)
+- `direccion` - Business address
+- `telefono` - Phone number
+- `descripcion` - Business description
+- `logo` - Logo file path in storage
+- `foto_local` - Location photo file path in storage
+- `is_open` - Boolean indicating if accepting orders
+- `created_at` - Creation timestamp
+- `updated_at` - Last update timestamp
+
+### Auto-Appended Fields
+
+The following fields are automatically added to JSON responses:
+
+- `logo_url` - Full URL to logo (e.g., `https://api.beanquick.com/storage/logos/abc123.jpg`)
+- `foto_local_url` - Full URL to location photo
+
+### Relationships
+
+- **usuario**: Belongs to one User (role: `empresa`)
+- **productos**: Has many products
+- **pedidos**: Has many orders
+
+### Business Status
+
+The `is_open` field controls whether the business is currently accepting orders:
+
+- `true` - Business is open and accepting orders
+- `false` - Business is closed (customers cannot place orders)
+
+Business owners can toggle this status via the `/api/empresa/toggle-estado` endpoint.

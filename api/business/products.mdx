@@ -1,0 +1,264 @@
+---
+title: 'Product Management'
+description: 'CRUD operations for business products'
+icon: 'box'
+---
+
+## List Business Products
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/empresa/productos \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</CodeGroup>
+
+Retrieves all products belonging to the authenticated business.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Response
+
+Returns an array of product objects with the following structure:
+
+<ResponseField name="[].id" type="integer">
+  Product ID
+</ResponseField>
+
+<ResponseField name="[].empresa_id" type="integer">
+  Business ID that owns this product
+</ResponseField>
+
+<ResponseField name="[].categoria_id" type="integer">
+  Category ID
+</ResponseField>
+
+<ResponseField name="[].nombre" type="string">
+  Product name
+</ResponseField>
+
+<ResponseField name="[].descripcion" type="string">
+  Product description
+</ResponseField>
+
+<ResponseField name="[].precio" type="float">
+  Product price
+</ResponseField>
+
+<ResponseField name="[].stock" type="integer">
+  Available stock quantity
+</ResponseField>
+
+<ResponseField name="[].imagen" type="string">
+  Image file path (storage path)
+</ResponseField>
+
+<ResponseField name="[].imagen_url" type="string">
+  Public URL for product image
+</ResponseField>
+
+<ResponseField name="[].categoria" type="object">
+  Category details (loaded via relationship)
+</ResponseField>
+
+---
+
+## Get Product Details
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/empresa/productos/123 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</CodeGroup>
+
+Retrieves a specific product belonging to the authenticated business.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Path Parameters
+
+<ParamField path="producto" type="integer" required>
+  Product ID
+</ParamField>
+
+### Response
+
+Returns a single product object with the same structure as the list endpoint.
+
+---
+
+## Create Product
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.beanquick.com/api/empresa/productos \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: multipart/form-data" \
+  -F "nombre=Cappuccino" \
+  -F "precio=4.50" \
+  -F "stock=50" \
+  -F "categoria_id=1" \
+  -F "descripcion=Espresso with steamed milk" \
+  -F "imagen=@/path/to/cappuccino.jpg"
+```
+</CodeGroup>
+
+Creates a new product for the authenticated business.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Body Parameters
+
+<ParamField body="nombre" type="string" required>
+  Product name (max 255 characters)
+</ParamField>
+
+<ParamField body="precio" type="number" required>
+  Product price (numeric value)
+</ParamField>
+
+<ParamField body="stock" type="integer" required>
+  Initial stock quantity (minimum 0)
+</ParamField>
+
+<ParamField body="categoria_id" type="integer" required>
+  Category ID (must exist in categorias table)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Product description
+</ParamField>
+
+<ParamField body="imagen" type="file">
+  Product image (max 2MB)
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message: "Producto creado con éxito"
+</ResponseField>
+
+<ResponseField name="producto" type="object">
+  Created product data
+</ResponseField>
+
+---
+
+## Update Product
+
+<CodeGroup>
+```bash cURL
+curl -X PUT https://api.beanquick.com/api/empresa/productos/123 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: multipart/form-data" \
+  -F "nombre=Cappuccino Grande" \
+  -F "precio=5.00" \
+  -F "stock=45" \
+  -F "categoria_id=1" \
+  -F "descripcion=Large espresso with steamed milk" \
+  -F "imagen=@/path/to/new-cappuccino.jpg"
+```
+</CodeGroup>
+
+Updates an existing product. Only products owned by the authenticated business can be updated.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Path Parameters
+
+<ParamField path="producto" type="integer" required>
+  Product ID to update
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="nombre" type="string" required>
+  Product name (max 255 characters)
+</ParamField>
+
+<ParamField body="precio" type="number" required>
+  Product price (numeric value)
+</ParamField>
+
+<ParamField body="stock" type="integer" required>
+  Stock quantity
+</ParamField>
+
+<ParamField body="categoria_id" type="integer" required>
+  Category ID (must exist in categorias table)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Product description
+</ParamField>
+
+<ParamField body="imagen" type="file">
+  Product image (max 2MB). Replaces existing image.
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message: "¡Actualizado!"
+</ResponseField>
+
+<ResponseField name="producto" type="object">
+  Updated product data
+</ResponseField>
+
+### Notes
+
+- When uploading a new image, the previous image is automatically deleted from storage
+- Images are stored in the `productos` directory
+
+---
+
+## Delete Product
+
+<CodeGroup>
+```bash cURL
+curl -X DELETE https://api.beanquick.com/api/empresa/productos/123 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</CodeGroup>
+
+Deletes a product. Only products owned by the authenticated business can be deleted.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Path Parameters
+
+<ParamField path="producto" type="integer" required>
+  Product ID to delete
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message: "Producto eliminado correctamente."
+</ResponseField>
+
+### Notes
+
+- Associated product image is automatically deleted from storage
+- This is a hard delete operation (product is permanently removed)

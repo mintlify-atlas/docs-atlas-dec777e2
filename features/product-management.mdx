@@ -1,0 +1,431 @@
+---
+title: Product Management
+description: Complete product lifecycle management with categories, images, and stock control
+---
+
+## Overview
+
+BeanQuick provides businesses with full CRUD operations for managing their product catalog, including category assignment, image uploads, pricing, and real-time stock tracking.
+
+## Product Model Structure
+
+The `Producto` model represents individual items for sale in the marketplace.
+
+### Database Schema
+
+```sql
+CREATE TABLE productos (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    empresa_id BIGINT NOT NULL,
+    categoria_id BIGINT NOT NULL,
+    nombre VARCHAR(255) NOT NULL,
+    descripcion TEXT NULL,
+    precio DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL,
+    imagen VARCHAR(255) NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
+);
+```
+
+### Model Attributes
+
+```php
+// Producto.php:12
+protected $fillable = [
+    'empresa_id',
+    'categoria_id',
+    'nombre',
+    'descripcion',
+    'precio',
+    'imagen',
+];
+
+protected $appends = ['imagen_url'];
+
+protected $casts = [
+    'precio' => 'float',
+    'stock'  => 'integer',
+];
+```
+
+## Category System
+
+Products must be assigned to one of the predefined categories managed by platform administrators.
+
+### Category Management (Admin Only)
+
+**Create Category:**
+```http
+POST /api/admin/categorias
+Authorization: Bearer {admin_token}
+
+{
+  "nombre": "Beverages"
+}
+```
+
+**Delete Category:**
+```http
+DELETE /api/admin/categorias/{id}
+Authorization: Bearer {admin_token}
+```
+
+**List All Categories (Public):**
+```http
+GET /api/categorias
+```
+
+## Product CRUD Operations
+
+All product management endpoints are protected and scoped to the authenticated business.
+
+### List Products
+
+Returns all products belonging to the authenticated business.
+
+**Endpoint:** `GET /api/empresa/productos`
+
+```php
+// ProductoController.php:26
+public function index(): JsonResponse
+{
+    $empresa = $this->getEmpresaAutenticada();
+
+    if (!$empresa) {
+        return response()->json(['message' => 'No tienes una empresa vinculada.'], 404);
+    }
+
+    $productos = Producto::where('empresa_id', $empresa->id)
+        ->with('categoria')
+        ->get();
+
+    return response()->json($productos);
+}
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "empresa_id": 5,
+    "categoria_id": 2,
+    "nombre": "Cappuccino",
+    "descripcion": "Italian espresso with steamed milk",
+    "precio": 4.50,
+    "stock": 100,
+    "imagen": "productos/abc123.jpg",
+    "imagen_url": "http://localhost:8000/storage/productos/abc123.jpg",
+    "categoria": {
+      "id": 2,
+      "nombre": "Beverages"
+    }
+  }
+]
+```
+
+### Create Product
+
+**Endpoint:** `POST /api/empresa/productos`
+
+```http
+POST /api/empresa/productos
+Authorization: Bearer {business_token}
+Content-Type: multipart/form-data
+
+nombre: Espresso
+precio: 3.50
+stock: 50
+categoria_id: 2
+descripcion: Strong Italian coffee
+imagen: [binary file]
+```
+
+**Implementation:**
+```php
+// ProductoController.php:61
+public function store(Request $request)
+{
+    $request->validate([
+        'nombre' => 'required|string|max:255',
+        'precio' => 'required|numeric',
+        'stock'  => 'required|integer|min:0',
+        'categoria_id' => 'required|exists:categorias,id',
+        'descripcion' => 'nullable|string',
+        'imagen' => 'nullable|image|max:2048',
+    ]);
+
+    $empresa = $this->getEmpresaAutenticada();
+
+    $producto = new Producto();
+    $producto->nombre = $request->nombre;
+    $producto->descripcion = $request->descripcion;
+    $producto->precio = $request->precio;
+    $producto->stock = $request->stock;
+    $producto->empresa_id = $empresa->id;
+    $producto->categoria_id = $request->categoria_id;
+
+    if ($request->hasFile('imagen')) {
+        $producto->imagen = $request->file('imagen')->store('productos', 'public');
+    }
+
+    $producto->save();
+
+    return response()->json([
+        'message' => 'Producto creado con éxito',
+        'producto' => $producto
+    ], 201);
+}
+```
+
+### Update Product
+
+**Endpoint:** `PUT /api/empresa/productos/{id}`
+
+```http
+PUT /api/empresa/productos/1
+Authorization: Bearer {business_token}
+Content-Type: multipart/form-data
+
+nombre: Espresso (Updated)
+precio: 4.00
+stock: 75
+categoria_id: 2
+```
+
+**Implementation:**
+```php
+// ProductoController.php:96
+public function update(Request $request, $id): JsonResponse
+{
+    $empresa = $this->getEmpresaAutenticada();
+    $producto = Producto::where('id', $id)
+        ->where('empresa_id', $empresa->id)
+        ->first();
+
+    if (!$producto) {
+        return response()->json(['message' => 'No encontrado'], 404);
+    }
+
+    $request->validate([
+        'nombre' => 'required|string|max:255',
+        'precio' => 'required|numeric',
+        'stock'  => 'required|integer',
+        'categoria_id' => 'required|exists:categorias,id',
+    ]);
+
+    // Manual assignment for reliability
+    $producto->nombre = $request->input('nombre');
+    $producto->descripcion = $request->input('descripcion');
+    $producto->precio = $request->input('precio');
+    $producto->stock = $request->input('stock');
+    $producto->categoria_id = $request->input('categoria_id');
+
+    if ($request->hasFile('imagen')) {
+        // Delete old image
+        if ($producto->imagen) {
+            Storage::disk('public')->delete($producto->imagen);
+        }
+        $producto->imagen = $request->file('imagen')->store('productos', 'public');
+    }
+
+    $producto->save();
+
+    return response()->json([
+        'message' => '¡Actualizado!',
+        'producto' => $producto
+    ]);
+}
+```
+
+### Delete Product
+
+**Endpoint:** `DELETE /api/empresa/productos/{id}`
+
+```php
+// ProductoController.php:135
+public function destroy($id): JsonResponse
+{
+    $empresa = $this->getEmpresaAutenticada();
+    $producto = Producto::where('id', $id)
+        ->where('empresa_id', $empresa->id)
+        ->first();
+
+    if (!$producto) {
+        return response()->json(['message' => 'No autorizado.'], 403);
+    }
+
+    if ($producto->imagen) {
+        Storage::disk('public')->delete($producto->imagen);
+    }
+
+    $producto->delete();
+
+    return response()->json(['message' => 'Producto eliminado correctamente.']);
+}
+```
+
+## Image Upload Handling
+
+### Storage Configuration
+
+Images are stored using Laravel's `public` disk:
+- **Path:** `storage/app/public/productos/`
+- **Public URL:** `http://localhost:8000/storage/productos/{filename}`
+- **Max Size:** 2MB (2048 KB)
+- **Allowed Types:** jpeg, png, jpg, gif, webp
+
+### Image URL Accessor
+
+```php
+// Producto.php:62
+public function getImagenUrlAttribute()
+{
+    return $this->imagen 
+        ? asset('storage/' . $this->imagen) 
+        : asset('images/placeholder-producto.png');
+}
+```
+
+This accessor automatically adds `imagen_url` to all JSON responses.
+
+### Upload Flow
+
+1. **Validation** - Ensure file is an image and under size limit
+2. **Storage** - Save to `storage/app/public/productos/`
+3. **Database** - Store relative path (e.g., `productos/abc123.jpg`)
+4. **Cleanup** - Delete old image when updating
+
+## Stock Management
+
+### Stock Tracking
+
+Stock is an integer field that decrements when orders are paid and increments when orders are cancelled.
+
+**Stock Updates (Automatic):**
+```php
+// When payment is approved (PagoController.php:148)
+foreach ($pedido->productos as $producto) {
+    $cantidad = $producto->pivot->cantidad;
+    $producto->decrement('stock', $cantidad);
+}
+
+// When order is cancelled (PedidoController.php:183)
+foreach ($pedido->productos as $producto) {
+    $producto->increment('stock', $producto->pivot->cantidad);
+}
+```
+
+**Stock Validation (Cart):**
+```php
+// CarritoController.php:54
+if ($producto->stock < $nuevaCantidad) {
+    return response()->json([
+        'error' => "Lo sentimos, solo quedan {$producto->stock} unidades disponibles."
+    ], 422);
+}
+```
+
+### Low Stock Alerts
+
+Businesses can monitor stock levels through their dashboard. The system validates stock before allowing items to be added to cart.
+
+## Featured Products
+
+The platform showcases top-rated products on the home page.
+
+**Endpoint:** `GET /api/productos/destacados`
+
+```php
+// ProductoController.php:157
+public function destacados(): JsonResponse
+{
+    $productos = Producto::select('id', 'nombre', 'precio', 'imagen', 'empresa_id')
+        ->with(['empresa:id,nombre,logo', 'calificaciones:id,producto_id,estrellas'])
+        ->get();
+
+    $destacados = $productos->map(function ($producto) {
+        // Calculate average rating
+        $promedio = $producto->calificaciones->avg('estrellas');
+        $producto->calificaciones_avg_estrellas = $promedio ? round($promedio, 1) : 0;
+        
+        // Add logo URL
+        if ($producto->empresa) {
+            $producto->empresa->logo_url = $producto->empresa->logo 
+                ? asset('storage/' . $producto->empresa->logo) 
+                : asset('images/default-logo.png'); 
+        }
+
+        unset($producto->calificaciones);
+        return $producto;
+    })
+    ->filter(fn($p) => $p->calificaciones_avg_estrellas > 0)
+    ->sortByDesc('calificaciones_avg_estrellas')
+    ->take(4)
+    ->values();
+
+    return response()->json($destacados);
+}
+```
+
+## Relationships
+
+```php
+// Producto.php:50
+public function empresa()
+{
+    return $this->belongsTo(Empresa::class, 'empresa_id');
+}
+
+public function categoria() {
+    return $this->belongsTo(Categoria::class);
+}
+
+public function calificaciones()
+{
+    return $this->hasMany(Calificacion::class);
+}
+
+public function carritos()
+{
+    return $this->belongsToMany(Carrito::class, 'carrito_productos')
+                ->withPivot('cantidad')
+                ->withTimestamps();
+}
+
+public function pedidos()
+{
+    return $this->belongsToMany(Pedido::class, 'pedido_productos');
+}
+```
+
+## Business Authorization
+
+All product endpoints use the `getEmpresaAutenticada()` helper to ensure businesses can only manage their own products:
+
+```php
+// ProductoController.php:18
+private function getEmpresaAutenticada()
+{
+    return Empresa::where('user_id', Auth::id())->first();
+}
+```
+
+This prevents businesses from viewing, editing, or deleting products belonging to other vendors.
+
+## Complete API Reference
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/categorias` | None | List all categories |
+| GET | `/api/productos/destacados` | None | Get top 4 rated products |
+| GET | `/api/empresa/productos` | Business | List own products |
+| GET | `/api/empresa/productos/{id}` | Business | Get single product |
+| POST | `/api/empresa/productos` | Business | Create product |
+| PUT | `/api/empresa/productos/{id}` | Business | Update product |
+| DELETE | `/api/empresa/productos/{id}` | Business | Delete product |
+| POST | `/api/admin/categorias` | Admin | Create category |
+| DELETE | `/api/admin/categorias/{id}` | Admin | Delete category |

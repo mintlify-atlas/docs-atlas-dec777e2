@@ -1,0 +1,266 @@
+---
+title: 'Business Dashboard'
+description: 'Analytics, metrics, and reporting for business performance'
+icon: 'chart-line'
+---
+
+## Get Dashboard Data
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.beanquick.com/api/empresa/dashboard?periodo=semana" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</CodeGroup>
+
+Retrieves comprehensive dashboard analytics including sales metrics, charts, top products, and recent orders.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Query Parameters
+
+<ParamField query="periodo" type="string" default="semana">
+  Time period for analytics. Valid values:
+  - `dia` - Today's data (hourly breakdown)
+  - `semana` - Last 7 days (daily breakdown)
+  - `mes` - Current month (daily breakdown)
+  - `anio` - Current year (monthly breakdown)
+</ParamField>
+
+### Response
+
+<ResponseField name="empresa" type="object">
+  Business profile information
+</ResponseField>
+
+<ResponseField name="periodo" type="string">
+  Selected time period
+</ResponseField>
+
+<ResponseField name="stats_cards" type="object">
+  Key performance metrics
+  
+  <Expandable title="stats_cards properties">
+    <ResponseField name="ventas_hoy" type="float">
+      Total sales for the selected period (delivered orders only)
+    </ResponseField>
+    
+    <ResponseField name="promedio_calificacion" type="float">
+      Average star rating across all products (0-5, rounded to 1 decimal)
+    </ResponseField>
+    
+    <ResponseField name="total_calificaciones" type="integer">
+      Total number of ratings received
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="charts" type="object">
+  Chart data for visualizations
+  
+  <Expandable title="charts properties">
+    <ResponseField name="ventas_semanales" type="array">
+      Sales data points for the selected period. Array of objects with:
+      - `label` (string): Time label (varies by period)
+      - `total` (float): Sales total for that time segment
+    </ResponseField>
+    
+    <ResponseField name="ventas_anuales" type="array">
+      Alias for ventas_semanales (same data, different name for backward compatibility)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="top_productos" type="array">
+  Best-selling products (top 5 by units sold)
+  
+  <Expandable title="top_productos[] properties">
+    <ResponseField name="nombre" type="string">
+      Product name
+    </ResponseField>
+    
+    <ResponseField name="ventas" type="integer">
+      Total units sold
+    </ResponseField>
+    
+    <ResponseField name="imagen" type="string">
+      Product image URL
+    </ResponseField>
+    
+    <ResponseField name="precio" type="float">
+      Current product price
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="ultimos_pedidos" type="array">
+  Most recent 5 orders
+  
+  <Expandable title="ultimos_pedidos[] properties">
+    <ResponseField name="id" type="integer">
+      Order ID
+    </ResponseField>
+    
+    <ResponseField name="cliente" type="string">
+      Customer name
+    </ResponseField>
+    
+    <ResponseField name="total" type="float">
+      Order total amount
+    </ResponseField>
+    
+    <ResponseField name="estado" type="string">
+      Order status (Pendiente, Preparando, Listo, Entregado, Cancelado)
+    </ResponseField>
+    
+    <ResponseField name="hora" type="string">
+      Relative time (e.g., "2 hours ago", "1 day ago")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Chart Label Formats by Period
+
+- **dia**: Hourly labels (`00h`, `01h`, ... `23h`)
+- **semana**: Daily labels (`01/03`, `02/03`, ... `07/03`)
+- **mes**: Day of month (`01`, `02`, ... `31`)
+- **anio**: Month names (`January`, `February`, ... `December`)
+
+### Sales Calculation
+
+Only orders with estado = `entregado` (case-insensitive) are counted in sales totals and charts.
+
+---
+
+## Get Business Ratings
+
+<CodeGroup>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/empresa/calificaciones \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</CodeGroup>
+
+Retrieves all customer ratings and reviews for the business's products.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Response
+
+Returns an array of rating objects, sorted by creation date (newest first):
+
+<ResponseField name="[].id" type="integer">
+  Rating ID
+</ResponseField>
+
+<ResponseField name="[].user_id" type="integer">
+  Customer user ID
+</ResponseField>
+
+<ResponseField name="[].pedido_id" type="integer">
+  Associated order ID
+</ResponseField>
+
+<ResponseField name="[].producto_id" type="integer">
+  Rated product ID
+</ResponseField>
+
+<ResponseField name="[].estrellas" type="integer">
+  Star rating (1-5)
+</ResponseField>
+
+<ResponseField name="[].comentario" type="string">
+  Customer review text
+</ResponseField>
+
+<ResponseField name="[].created_at" type="string">
+  Rating creation timestamp
+</ResponseField>
+
+<ResponseField name="[].usuario" type="object">
+  Customer information
+  
+  <Expandable title="usuario properties">
+    <ResponseField name="id" type="integer">
+      User ID
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Customer name
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="[].producto" type="object">
+  Product information
+  
+  <Expandable title="producto properties">
+    <ResponseField name="id" type="integer">
+      Product ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Product name
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Download Dashboard Report (PDF)
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.beanquick.com/api/empresa/dashboard/pdf?periodo=semana" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  --output dashboard-report.pdf
+```
+</CodeGroup>
+
+Generates and downloads a PDF report containing dashboard analytics data.
+
+### Authentication
+
+- **Required:** Yes (Sanctum token)
+- **Role:** `empresa`
+
+### Query Parameters
+
+<ParamField query="periodo" type="string" default="semana">
+  Time period for the report. Valid values:
+  - `dia` - Today's data
+  - `semana` - Last 7 days
+  - `mes` - Current month
+  - `anio` - Current year
+</ParamField>
+
+### Response
+
+Returns a PDF file download with content-type `application/pdf`.
+
+**Filename:** `reporte-dashboard-empresa.pdf`
+
+**Paper size:** A4 portrait
+
+### Report Contents
+
+The PDF includes the same data available from GET /dashboard:
+- Sales statistics for the selected period
+- Rating metrics
+- Sales charts
+- Top products list
+- Recent orders summary
+
+### Implementation Notes
+
+- Uses Barryvdh\DomPDF\Facade\Pdf for PDF generation
+- Renders from view template: `pdf.dashboard_empresa`
+- Same data structure as JSON endpoint

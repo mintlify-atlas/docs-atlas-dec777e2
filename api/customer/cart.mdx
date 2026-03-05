@@ -1,0 +1,353 @@
+---
+title: 'Shopping Cart'
+description: 'Manage customer shopping cart items'
+---
+
+<Warning>
+All cart endpoints require authentication with Sanctum token.
+</Warning>
+
+## View Cart
+
+```http
+GET /api/cliente/carrito
+```
+
+Retrieve all products currently in the authenticated user's cart.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Response
+
+<ResponseField name="productos" type="array">
+  Array of products in the cart
+  
+  <Expandable title="Product Object">
+    <ResponseField name="id" type="integer">
+      Product ID
+    </ResponseField>
+    
+    <ResponseField name="empresa_id" type="integer">
+      Business ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Product name
+    </ResponseField>
+    
+    <ResponseField name="precio" type="float">
+      Product price
+    </ResponseField>
+    
+    <ResponseField name="stock" type="integer">
+      Available stock quantity
+    </ResponseField>
+    
+    <ResponseField name="imagen_url" type="string">
+      Full URL to product image
+    </ResponseField>
+    
+    <ResponseField name="pivot" type="object">
+      Cart-specific data
+      
+      <Expandable title="Pivot Fields">
+        <ResponseField name="cantidad" type="integer">
+          Quantity of this product in cart
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="empresa" type="object">
+      Business information including name, logo, and is_open status
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/cliente/carrito \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+[
+  {
+    "id": 15,
+    "empresa_id": 1,
+    "nombre": "Café Colombiano Premium",
+    "precio": 25000,
+    "stock": 50,
+    "imagen_url": "https://api.beanquick.com/storage/productos/cafe_premium.jpg",
+    "pivot": {
+      "cantidad": 2
+    },
+    "empresa": {
+      "id": 1,
+      "nombre": "Café Aromático",
+      "is_open": true
+    }
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## Add to Cart
+
+```http
+POST /api/cliente/carrito/agregar/{productoId}
+```
+
+Add a product to the cart or increase its quantity if already present.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="productoId" type="integer" required>
+  Product ID to add to cart
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="cantidad" type="integer" required>
+  Quantity to add (minimum: 1)
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="productos" type="array">
+  Updated cart contents
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.beanquick.com/api/cliente/carrito/agregar/15 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "cantidad": 2
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "message": "Producto agregado.",
+  "productos": [
+    {
+      "id": 15,
+      "nombre": "Café Colombiano Premium",
+      "precio": 25000,
+      "stock": 50,
+      "pivot": {
+        "cantidad": 2
+      }
+    }
+  ]
+}
+```
+
+```json 422 Insufficient Stock
+{
+  "error": "Lo sentimos, solo quedan 3 unidades disponibles."
+}
+```
+
+```json 403 Business Closed
+{
+  "error": "Esta tienda está cerrada actualmente."
+}
+```
+</ResponseExample>
+
+---
+
+## Update Cart Item
+
+```http
+PUT /api/cliente/carrito/actualizar/{productoId}
+```
+
+Update the quantity of a product already in the cart.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="productoId" type="integer" required>
+  Product ID to update
+</ParamField>
+
+### Body Parameters
+
+<ParamField body="cantidad" type="integer" required>
+  New quantity (minimum: 1)
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="productos" type="array">
+  Updated cart contents
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.beanquick.com/api/cliente/carrito/actualizar/15 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "cantidad": 5
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "message": "Cantidad actualizada.",
+  "productos": [
+    {
+      "id": 15,
+      "nombre": "Café Colombiano Premium",
+      "precio": 25000,
+      "stock": 50,
+      "pivot": {
+        "cantidad": 5
+      }
+    }
+  ]
+}
+```
+
+```json 422 Insufficient Stock
+{
+  "error": "Stock insuficiente."
+}
+```
+
+```json 403 Business Closed
+{
+  "error": "No puedes modificar productos de una tienda cerrada."
+}
+```
+</ResponseExample>
+
+---
+
+## Remove from Cart
+
+```http
+DELETE /api/cliente/carrito/eliminar/{productoId}
+```
+
+Remove a product from the cart completely.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="productoId" type="integer" required>
+  Product ID to remove
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="productos" type="array">
+  Updated cart contents
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.beanquick.com/api/cliente/carrito/eliminar/15 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "message": "Eliminado.",
+  "productos": []
+}
+```
+</ResponseExample>
+
+---
+
+## Clear Cart
+
+```http
+POST /api/cliente/carrito/vaciar
+```
+
+Remove all products from the cart.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="productos" type="array">
+  Empty array
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.beanquick.com/api/cliente/carrito/vaciar \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "message": "Vaciado.",
+  "productos": []
+}
+```
+</ResponseExample>

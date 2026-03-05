@@ -1,0 +1,321 @@
+---
+title: 'Businesses'
+description: 'Browse and explore vendor businesses in the marketplace'
+---
+
+## List All Businesses
+
+<Warning>
+Requires authentication with Sanctum token.
+</Warning>
+
+```http
+GET /api/cliente/empresas
+```
+
+Retrieves all registered businesses in the marketplace.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Response
+
+<ResponseField name="empresas" type="array">
+  Array of business objects
+  
+  <Expandable title="Business Object">
+    <ResponseField name="id" type="integer">
+      Unique business identifier
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="integer">
+      Owner user ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Business name
+    </ResponseField>
+    
+    <ResponseField name="nit" type="string">
+      Tax identification number
+    </ResponseField>
+    
+    <ResponseField name="direccion" type="string">
+      Business address
+    </ResponseField>
+    
+    <ResponseField name="telefono" type="string">
+      Contact phone number
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string">
+      Business description
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      Logo file path in storage
+    </ResponseField>
+    
+    <ResponseField name="foto_local" type="string">
+      Store photo file path in storage
+    </ResponseField>
+    
+    <ResponseField name="is_open" type="boolean">
+      Whether the business is currently open for orders
+    </ResponseField>
+    
+    <ResponseField name="logo_url" type="string">
+      Full URL to logo image
+    </ResponseField>
+    
+    <ResponseField name="foto_local_url" type="string">
+      Full URL to store photo
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string">
+      Creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="string">
+      Last update timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/cliente/empresas \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+[
+  {
+    "id": 1,
+    "user_id": 5,
+    "nombre": "Café Aromático",
+    "nit": "123456789-0",
+    "direccion": "Calle Principal #123",
+    "telefono": "+57 300 123 4567",
+    "descripcion": "Café artesanal de alta calidad",
+    "logo": "empresas/logo_1.jpg",
+    "foto_local": "empresas/local_1.jpg",
+    "is_open": true,
+    "logo_url": "https://api.beanquick.com/storage/empresas/logo_1.jpg",
+    "foto_local_url": "https://api.beanquick.com/storage/empresas/local_1.jpg",
+    "created_at": "2024-01-15T10:30:00.000000Z",
+    "updated_at": "2024-01-20T14:20:00.000000Z"
+  }
+]
+```
+</ResponseExample>
+
+---
+
+## Get Business Details
+
+<Warning>
+Requires authentication with Sanctum token.
+</Warning>
+
+```http
+GET /api/cliente/empresa/{id}
+```
+
+Retrieve detailed information about a specific business.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  Business ID
+</ParamField>
+
+### Response
+
+Returns a single business object with all fields listed above.
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/cliente/empresa/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "id": 1,
+  "user_id": 5,
+  "nombre": "Café Aromático",
+  "nit": "123456789-0",
+  "direccion": "Calle Principal #123",
+  "telefono": "+57 300 123 4567",
+  "descripcion": "Café artesanal de alta calidad",
+  "logo": "empresas/logo_1.jpg",
+  "foto_local": "empresas/local_1.jpg",
+  "is_open": true,
+  "logo_url": "https://api.beanquick.com/storage/empresas/logo_1.jpg",
+  "foto_local_url": "https://api.beanquick.com/storage/empresas/local_1.jpg",
+  "created_at": "2024-01-15T10:30:00.000000Z",
+  "updated_at": "2024-01-20T14:20:00.000000Z"
+}
+```
+
+```json 404 Not Found
+{
+  "message": "Empresa no encontrada"
+}
+```
+</ResponseExample>
+
+---
+
+## Get Business Products
+
+<Warning>
+Requires authentication with Sanctum token.
+</Warning>
+
+```http
+GET /api/cliente/empresa/{id}/productos
+```
+
+Retrieve all products offered by a specific business, including rating information.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token obtained from login
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  Business ID
+</ParamField>
+
+### Response
+
+<ResponseField name="empresa" type="object">
+  Business information object
+</ResponseField>
+
+<ResponseField name="productos" type="array">
+  Array of product objects
+  
+  <Expandable title="Product Object">
+    <ResponseField name="id" type="integer">
+      Product ID
+    </ResponseField>
+    
+    <ResponseField name="empresa_id" type="integer">
+      Business ID
+    </ResponseField>
+    
+    <ResponseField name="categoria_id" type="integer">
+      Category ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string">
+      Product name
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string">
+      Product description
+    </ResponseField>
+    
+    <ResponseField name="precio" type="float">
+      Product price
+    </ResponseField>
+    
+    <ResponseField name="stock" type="integer">
+      Available stock quantity
+    </ResponseField>
+    
+    <ResponseField name="imagen" type="string">
+      Image file path
+    </ResponseField>
+    
+    <ResponseField name="imagen_url" type="string">
+      Full URL to product image
+    </ResponseField>
+    
+    <ResponseField name="calificaciones_avg_estrellas" type="float">
+      Average rating (1-5 stars)
+    </ResponseField>
+    
+    <ResponseField name="ya_calificado" type="boolean">
+      Whether the authenticated user has already rated this product
+    </ResponseField>
+    
+    <ResponseField name="categoria" type="object">
+      Category information
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="categorias" type="array">
+  All available product categories
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.beanquick.com/api/cliente/empresa/1/productos \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "empresa": {
+    "id": 1,
+    "nombre": "Café Aromático",
+    "is_open": true
+  },
+  "productos": [
+    {
+      "id": 15,
+      "empresa_id": 1,
+      "categoria_id": 3,
+      "nombre": "Café Colombiano Premium",
+      "descripcion": "Granos 100% arábica",
+      "precio": 25000,
+      "stock": 50,
+      "imagen": "productos/cafe_premium.jpg",
+      "imagen_url": "https://api.beanquick.com/storage/productos/cafe_premium.jpg",
+      "calificaciones_avg_estrellas": 4.5,
+      "ya_calificado": false,
+      "categoria": {
+        "id": 3,
+        "nombre": "Bebidas"
+      }
+    }
+  ],
+  "categorias": [
+    {
+      "id": 1,
+      "nombre": "Alimentos"
+    },
+    {
+      "id": 2,
+      "nombre": "Bebidas"
+    }
+  ]
+}
+```
+</ResponseExample>

@@ -1,0 +1,271 @@
+---
+title: 'Business Applications'
+description: 'Manage business registration applications in BeanQuick'
+---
+
+## Overview
+
+The Business Applications API allows administrators to review, approve, or reject new business registration requests. When a business is approved, an activation token is generated and sent via email to complete the registration process.
+
+<Note>
+All admin endpoints require:
+- Valid Sanctum authentication token
+- User must have `admin` role
+</Note>
+
+---
+
+## List Applications
+
+<RequestExample>
+```bash curl
+curl -X GET https://api.beanquick.com/api/admin/solicitudes \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "usuarios": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "rol": "cliente"
+    }
+  ],
+  "empresas": [
+    {
+      "id": 1,
+      "nombre": "Coffee Shop",
+      "nit": "123456789",
+      "is_open": true
+    }
+  ],
+  "pedidos": [
+    {
+      "id": 1,
+      "total": 45000,
+      "estado": "pendiente",
+      "cliente": {
+        "id": 2,
+        "name": "Jane Smith"
+      },
+      "empresa": {
+        "id": 1,
+        "nombre": "Coffee Shop"
+      }
+    }
+  ],
+  "solicitudes": [
+    {
+      "id": 1,
+      "nombre": "Panadería El Sol",
+      "correo": "elsol@example.com",
+      "nit": "987654321",
+      "telefono": "3001234567",
+      "direccion": "Calle 123 #45-67",
+      "descripcion": "Panadería artesanal",
+      "logo": "logos/abc123.jpg",
+      "foto_local": "locales/xyz789.jpg",
+      "estado": "pendiente",
+      "token": null,
+      "logo_url": "https://api.beanquick.com/storage/logos/abc123.jpg",
+      "foto_local_url": "https://api.beanquick.com/storage/locales/xyz789.jpg",
+      "created_at": "2026-03-01T10:00:00.000000Z",
+      "updated_at": "2026-03-01T10:00:00.000000Z"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+Retrieves the complete admin dashboard data including pending business applications, all users, businesses, and orders.
+
+### Endpoint
+
+<ParamField path="GET" type="string">
+  /api/admin/solicitudes
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="solicitudes" type="array">
+  Array of pending business applications
+  
+  <ResponseField name="id" type="integer">
+    Application ID
+  </ResponseField>
+  
+  <ResponseField name="nombre" type="string">
+    Business name
+  </ResponseField>
+  
+  <ResponseField name="correo" type="string">
+    Business contact email
+  </ResponseField>
+  
+  <ResponseField name="nit" type="string">
+    Tax identification number (NIT)
+  </ResponseField>
+  
+  <ResponseField name="telefono" type="string">
+    Phone number
+  </ResponseField>
+  
+  <ResponseField name="direccion" type="string">
+    Business address
+  </ResponseField>
+  
+  <ResponseField name="descripcion" type="string">
+    Business description
+  </ResponseField>
+  
+  <ResponseField name="estado" type="string">
+    Application status: `pendiente`, `aprobado`, or `rechazado`
+  </ResponseField>
+  
+  <ResponseField name="token" type="string | null">
+    Activation token (generated on approval)
+  </ResponseField>
+  
+  <ResponseField name="logo_url" type="string | null">
+    Full URL to business logo image
+  </ResponseField>
+  
+  <ResponseField name="foto_local_url" type="string | null">
+    Full URL to business location photo
+  </ResponseField>
+</ResponseField>
+
+---
+
+## Approve Application
+
+<RequestExample>
+```bash curl
+curl -X POST https://api.beanquick.com/api/admin/aprobar/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Solicitud aprobada y correo de activación enviado.",
+  "solicitud": {
+    "id": 1,
+    "nombre": "Panadería El Sol",
+    "correo": "elsol@example.com",
+    "nit": "987654321",
+    "telefono": "3001234567",
+    "direccion": "Calle 123 #45-67",
+    "descripcion": "Panadería artesanal",
+    "estado": "aprobado",
+    "token": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0",
+    "logo_url": "https://api.beanquick.com/storage/logos/abc123.jpg",
+    "foto_local_url": "https://api.beanquick.com/storage/locales/xyz789.jpg"
+  }
+}
+```
+</ResponseExample>
+
+Approves a business application and sends an activation email with a secure token.
+
+### Endpoint
+
+<ParamField path="POST" type="string">
+  /api/admin/aprobar/{id}
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the application to approve
+</ParamField>
+
+### Approval Workflow
+
+1. **Token Generation**: A random 60-character token is generated for security
+2. **Status Update**: Application status changes from `pendiente` to `aprobado`
+3. **Email Sent**: An activation email is sent to the business contact email with a link containing the token
+4. **Frontend Link**: The email includes a URL like `http://localhost:5173/empresa/activar/{token}`
+5. **Business Activation**: The business owner clicks the link and completes registration using the token
+
+<Warning>
+If the email fails to send, the application is still marked as approved in the database, but a 500 error is returned with details.
+</Warning>
+
+### Response Fields
+
+<ResponseField name="message" type="string">
+  Success or error message
+</ResponseField>
+
+<ResponseField name="solicitud" type="object">
+  The updated application object with generated token
+</ResponseField>
+
+---
+
+## Reject Application
+
+<RequestExample>
+```bash curl
+curl -X POST https://api.beanquick.com/api/admin/rechazar/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Solicitud rechazada.",
+  "solicitud": {
+    "id": 1,
+    "nombre": "Panadería El Sol",
+    "correo": "elsol@example.com",
+    "estado": "rechazado",
+    "token": null
+  }
+}
+```
+</ResponseExample>
+
+Rejects a business application. The application will no longer appear in the pending list.
+
+### Endpoint
+
+<ParamField path="POST" type="string">
+  /api/admin/rechazar/{id}
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the application to reject
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="message" type="string">
+  Confirmation message
+</ResponseField>
+
+<ResponseField name="solicitud" type="object">
+  The updated application object with status `rechazado`
+</ResponseField>
+
+---
+
+## Application States
+
+Applications can have three states:
+
+- **`pendiente`**: Initial state when submitted, awaiting admin review
+- **`aprobado`**: Approved by admin, activation email sent with token
+- **`rechazado`**: Rejected by admin, will not be activated

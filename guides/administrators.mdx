@@ -1,0 +1,541 @@
+---
+title: Administrator Guide
+description: Complete guide for BeanQuick platform administrators to manage business applications, users, and categories
+---
+
+## Administrator Overview
+
+As a BeanQuick administrator, you have full control over the platform. This guide covers all administrative functions including business application review, user management, business oversight, and category administration.
+
+---
+
+## Accessing the Admin Panel
+
+### Login
+
+Administrators log in using their admin credentials:
+1. Navigate to the login page
+2. Enter admin email and password
+3. You'll be redirected to the **Admin Dashboard**
+
+<Tip>
+Your admin role is stored securely and determines which features you can access throughout the platform.
+</Tip>
+
+### Admin Dashboard
+
+The main dashboard provides quick access to all administrative functions:
+
+<CardGroup cols={3}>
+  <Card title="Solicitudes de Registro" icon="user-check">
+    Review and approve/reject new business applications
+  </Card>
+  
+  <Card title="Gestión de Empresas" icon="store">
+    Manage all active businesses on the platform
+  </Card>
+  
+  <Card title="Usuarios del Sistema" icon="users-cog">
+    Control customer accounts and user roles
+  </Card>
+</CardGroup>
+
+---
+
+## Managing Business Applications
+
+### Reviewing Pending Applications
+
+Access **"Solicitudes de Registro"** to see all pending business applications.
+
+#### Application Information
+
+The applications table displays:
+- Business name
+- Email address
+- NIT (Tax ID)
+- Action buttons
+
+### Viewing Full Application Details
+
+<Steps>
+  <Step title="Click Ver todo">
+    Click the **"Ver todo"** (View All) button on any application row.
+  </Step>
+  
+  <Step title="Review Details">
+    The expanded view shows:
+    - Phone number
+    - Physical address
+    - Business description
+    - Logo image (preview)
+    - Establishment photo (preview)
+  </Step>
+  
+  <Step title="Close Details">
+    Click **"Cerrar"** (Close) to collapse the details.
+  </Step>
+</Steps>
+
+<Tip>
+Review the business description and photos carefully to ensure the business is legitimate and fits BeanQuick's standards.
+</Tip>
+
+### Approving Applications
+
+<Steps>
+  <Step title="Review Application">
+    Thoroughly review all business information and images.
+  </Step>
+  
+  <Step title="Click Approve Button">
+    Click the green checkmark (✓) button.
+  </Step>
+  
+  <Step title="Confirm Approval">
+    Confirm the approval when prompted: "¿Aprobar esta empresa? Se enviará el correo de activación."
+  </Step>
+  
+  <Step title="Activation Email Sent">
+    The system automatically sends an activation email to the business with:
+    - Activation link with unique token
+    - Instructions to complete account setup
+  </Step>
+</Steps>
+
+<Card title="What Happens After Approval" icon="envelope">
+  - Business receives activation email
+  - Application is removed from pending list
+  - Business can activate account and start operating
+</Card>
+
+### Rejecting Applications
+
+<Warning>
+Rejection is permanent. Make sure the business doesn't meet platform standards before rejecting.
+</Warning>
+
+<Steps>
+  <Step title="Review Application">
+    Verify the application should be rejected.
+  </Step>
+  
+  <Step title="Click Reject Button">
+    Click the red X (✕) button.
+  </Step>
+  
+  <Step title="Confirm Rejection">
+    Confirm: "¿Estás seguro de rechazar esta solicitud?"
+  </Step>
+  
+  <Step title="Application Removed">
+    The application is permanently removed from the system.
+  </Step>
+</Steps>
+
+#### Common Rejection Reasons
+- Incomplete or inaccurate information
+- Low-quality or inappropriate images
+- Business type doesn't fit platform (must be coffee/cafe related)
+- Suspected fraudulent application
+- Duplicate application
+
+---
+
+## Managing Categories
+
+Categories help organize products across all businesses on the platform.
+
+### Creating Categories
+
+From the Admin Dashboard, use the category management section:
+
+<Steps>
+  <Step title="Enter Category Name">
+    Type the new category name in the input field (e.g., "Espresso", "Pastries", "Cold Brew").
+  </Step>
+  
+  <Step title="Click Create">
+    Click **"Crear categoría"** (Create Category).
+  </Step>
+  
+  <Step title="Category Created">
+    The category appears in the existing categories list immediately.
+  </Step>
+</Steps>
+
+<Tip>
+Create broad categories that can be used by multiple businesses. Examples: Coffee, Tea, Pastries, Sandwiches, Breakfast, Snacks.
+</Tip>
+
+### Viewing Existing Categories
+
+The **"Categorías existentes"** (Existing Categories) section displays all current categories in a grid layout.
+
+Each category shows:
+- Category name
+- Delete button
+
+### Deleting Categories
+
+<Warning>
+Deleting a category may affect products that use it across all businesses. Use with caution.
+</Warning>
+
+<Steps>
+  <Step title="Locate Category">
+    Find the category you want to remove in the existing categories list.
+  </Step>
+  
+  <Step title="Click Delete">
+    Click the red trash icon.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Confirm: "¿Estás seguro de que deseas eliminar esta categoría?"
+  </Step>
+  
+  <Step title="Category Removed">
+    The category is permanently deleted from the system.
+  </Step>
+</Steps>
+
+---
+
+## Managing Users
+
+Access **"Usuarios del Sistema"** to control all customer accounts.
+
+### User Management Interface
+
+The user management page includes:
+- Search bar (filter by name or email)
+- User table with all registered customers
+- Edit and delete actions
+
+### Searching Users
+
+Use the search box to quickly find users:
+- Search by name
+- Search by email address
+- Results filter in real-time
+
+### Viewing User Details
+
+The user table displays:
+
+<Card title="User Information" icon="user">
+  - User avatar (icon)
+  - Full name
+  - Email address
+  - Role (Cliente/Admin)
+  - Action buttons
+</Card>
+
+Roles are color-coded:
+- **Blue badge**: Admin users
+- **Gray badge**: Customer (Cliente) users
+
+### Editing Users
+
+<Steps>
+  <Step title="Click Edit">
+    Click the edit icon (pencil) next to the user.
+  </Step>
+  
+  <Step title="Modify Details">
+    Update any of the following in the modal:
+    - Name
+    - Email
+    - Role (Cliente/Admin)
+    - Password (optional - leave blank to keep current)
+  </Step>
+  
+  <Step title="Save Changes">
+    Click **"Guardar Cambios"** (Save Changes).
+  </Step>
+  
+  <Step title="Changes Applied">
+    The user information updates immediately.
+  </Step>
+</Steps>
+
+<Tip>
+You can promote customers to admin by changing their role, or demote admins back to customers.
+</Tip>
+
+### Deleting Users
+
+<Warning>
+Deleting a user is permanent and cannot be undone. All their orders and reviews will be affected.
+</Warning>
+
+<Steps>
+  <Step title="Click Delete">
+    Click the trash icon next to the user.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Confirm in the popup: "¿Eliminar a [Name]? Esta acción no se puede deshacer."
+  </Step>
+  
+  <Step title="Click Sí, eliminar">
+    Click the red confirmation button.
+  </Step>
+  
+  <Step title="User Removed">
+    The user is permanently deleted from the system.
+  </Step>
+</Steps>
+
+---
+
+## Managing Businesses
+
+Access **"Gestión de Empresas"** to oversee all active businesses.
+
+### Business Directory
+
+Businesses are displayed in a card-based grid showing:
+
+<Card title="Business Card Layout" icon="store">
+  - Establishment photo (banner)
+  - Logo (overlaid on photo)
+  - Business name
+  - NIT
+  - Email address
+  - Phone number
+  - Physical address
+  - Edit and delete buttons
+</Card>
+
+### Searching Businesses
+
+Use the search bar to filter businesses:
+- Search by business name
+- Search by NIT
+- Real-time filtering
+
+### Editing Business Information
+
+<Steps>
+  <Step title="Click Editar">
+    Click the **"Editar"** (Edit) button on any business card.
+  </Step>
+  
+  <Step title="Update Information">
+    Modify any of the following:
+    - Business name (commercial name)
+    - NIT (Tax ID)
+    - Phone number
+    - Address
+  </Step>
+  
+  <Step title="Save Changes">
+    Click **"Guardar Cambios"** (Save Changes) with the save icon.
+  </Step>
+</Steps>
+
+<Tip>
+Use the edit function to correct business information errors or help businesses update their details.
+</Tip>
+
+### Deleting Businesses
+
+<Warning>
+**Critical Action**: Deleting a business will remove:
+- The business account
+- All their products
+- Order history
+- Customer reviews
+
+This action is irreversible.
+</Warning>
+
+<Steps>
+  <Step title="Click Delete">
+    Click the trash icon on the business card.
+  </Step>
+  
+  <Step title="Review Warning">
+    Read the warning: "¿Eliminar [Business Name]? Se borrarán todos los productos asociados a este local."
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Click **"Sí, eliminar"** if you're certain.
+  </Step>
+  
+  <Step title="Business Removed">
+    The business and all associated data is permanently deleted.
+  </Step>
+</Steps>
+
+#### When to Delete Businesses
+- Business permanently closed
+- Violation of platform terms
+- Duplicate accounts
+- Business request for account removal
+- Suspected fraudulent activity
+
+---
+
+## Platform Oversight Responsibilities
+
+As an administrator, you're responsible for:
+
+<CardGroup cols={2}>
+  <Card title="Quality Control" icon="check-circle">
+    Ensure only legitimate, quality businesses join the platform through thorough application review.
+  </Card>
+  
+  <Card title="User Safety" icon="shield">
+    Monitor and remove problematic users or businesses that violate platform policies.
+  </Card>
+  
+  <Card title="Content Moderation" icon="eye">
+    Review business information, product categories, and ensure appropriate content standards.
+  </Card>
+  
+  <Card title="Platform Organization" icon="folder">
+    Maintain organized product categories that make sense for all businesses.
+  </Card>
+</CardGroup>
+
+### Regular Administrative Tasks
+
+**Daily:**
+- Review new business applications
+- Respond to business activation issues
+- Monitor for duplicate or suspicious accounts
+
+**Weekly:**
+- Audit active businesses for quality
+- Review and update product categories as needed
+- Check for user account issues
+
+**Monthly:**
+- Analyze platform growth metrics
+- Review deleted accounts and reasons
+- Update category structure based on usage
+
+<Tip>
+Establish a consistent review schedule to keep applications moving quickly and maintain platform quality.
+</Tip>
+
+---
+
+## Best Practices
+
+### Application Review
+
+<Card title="Approval Checklist" icon="list">
+  - [ ] Business name is clear and professional
+  - [ ] Email is valid and appears legitimate
+  - [ ] NIT format is correct
+  - [ ] Phone number is complete
+  - [ ] Address is specific and verifiable
+  - [ ] Description explains the business clearly
+  - [ ] Logo is high quality and appropriate
+  - [ ] Establishment photo shows actual business
+  - [ ] Business fits platform category (coffee/cafe)
+</Card>
+
+### Category Management
+
+- Keep category names simple and clear
+- Avoid overly specific categories
+- Create categories that multiple businesses will use
+- Regularly audit categories and merge duplicates
+- Delete unused categories to keep the system clean
+
+### User Management
+
+- Only delete users when absolutely necessary
+- Document reasons for user deletions
+- Be cautious when changing user roles
+- Verify user issues before taking action
+
+### Business Oversight
+
+- Give businesses time to activate before following up
+- Help businesses resolve activation issues
+- Only delete businesses for serious violations or closures
+- Keep business information accurate and up-to-date
+
+---
+
+## Security Considerations
+
+<Warning>
+Administrator accounts have complete platform control. Protect your credentials carefully.
+</Warning>
+
+### Account Security
+
+- Use a strong, unique password
+- Never share admin credentials
+- Log out when finished
+- Monitor for suspicious activity
+
+### Data Privacy
+
+- Handle user data responsibly
+- Only access information necessary for administrative tasks
+- Don't share business or user information externally
+- Follow data protection regulations
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Business can't activate account**
+- Verify activation email was sent
+- Check if activation token expired
+- Confirm business used correct email address
+- Manually resend activation if needed
+
+**Category won't delete**
+- Check if products are using the category
+- Verify you have proper permissions
+- Try refreshing and attempting again
+
+**User changes not saving**
+- Confirm all required fields are filled
+- Check for valid email format
+- Verify network connection
+
+---
+
+## Logging Out
+
+When finished with administrative tasks:
+
+<Steps>
+  <Step title="Click Cerrar Sesión">
+    Click the **"Cerrar Sesión"** (Logout) button in the admin panel header.
+  </Step>
+  
+  <Step title="Confirm Logout">
+    You'll be redirected to the login page.
+  </Step>
+  
+  <Step title="Session Cleared">
+    All authentication tokens are cleared from browser storage.
+  </Step>
+</Steps>
+
+<Tip>
+Always log out when using a shared or public computer to protect platform security.
+</Tip>
+
+---
+
+## Need Help?
+
+For administrator support:
+- Contact the technical team for system issues
+- Review this guide for standard procedures
+- Document unusual situations for future reference
+- Escalate critical security issues immediately

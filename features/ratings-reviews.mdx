@@ -1,0 +1,484 @@
+---
+title: Ratings & Reviews
+description: Product-level rating system with 5-star reviews and customer feedback
+---
+
+## Overview
+
+BeanQuick implements a comprehensive rating and review system that allows customers to rate products on a 1-5 star scale with optional text comments. Reviews are tied to delivered orders to ensure authenticity.
+
+## Rating Model Structure
+
+### Database Schema
+
+```sql
+CREATE TABLE calificaciones (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    pedido_id BIGINT NOT NULL,
+    producto_id BIGINT NOT NULL,
+    estrellas INT NOT NULL COMMENT 'Del 1 al 5',
+    comentario TEXT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
+    FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE
+);
+```
+
+### Model Configuration
+
+```php
+// Calificacion.php:15
+protected $table = 'calificaciones';
+
+protected $fillable = [
+    'user_id',
+    'pedido_id',
+    'producto_id',
+    'estrellas',
+    'comentario'
+];
+```
+
+## Creating Reviews
+
+### Submit Rating
+
+Customers can rate products from delivered orders.
+
+**Endpoint:** `POST /api/cliente/calificar`
+
+**Request:**
+```json
+{
+  "pedido_id": 15,
+  "producto_id": 5,
+  "estrellas": 5,
+  "comentario": "Excellent cappuccino! Will order again."
+}
+```
+
+**Implementation:**
+```php
+// CalificacionController.php:18
+public function store(Request $request): JsonResponse
+{
+    // Validation
+    $request->validate([
+        'pedido_id'   => 'required|exists:pedidos,id',
+        'producto_id' => 'required|exists:productos,id',
+        'estrellas'   => 'required|integer|min:1|max:5',
+        'comentario'  => 'nullable|string|max:255',
+    ]);
+
+    try {
+        // 1. Verify order ownership and status
+        $pedido = Pedido::where('id', $request->pedido_id)
+                        ->where('user_id', Auth::id())
+                        ->first();
+
+        if (!$pedido) {
+            return response()->json(['message' => 'Pedido no encontrado.'], 404);
+        }
+
+        // RULE: Can only rate delivered orders
+        if (strtolower($pedido->estado) !== 'entregado') {
+            return response()->json([
+                'message' => 'Solo puedes calificar productos de pedidos entregados.'
+            ], 403);
+        }
+
+        // 2. Prevent duplicate ratings
+        $existe = Calificacion::where('pedido_id', $request->pedido_id)
+                              ->where('producto_id', $request->producto_id)
+                              ->exists();
+
+        if ($existe) {
+            return response()->json([
+                'message' => 'Ya has calificado este producto.'
+            ], 400);
+        }
+
+        // 3. Create rating
+        $calificacion = Calificacion::create([
+            'user_id'     => Auth::id(),
+            'pedido_id'   => $request->pedido_id,
+            'producto_id' => $request->producto_id,
+            'estrellas'   => $request->estrellas,
+            'comentario'  => $request->comentario,
+        ]);
+
+        return response()->json([
+            'message' => '¡Gracias por tu calificación! ⭐',
+            'calificacion' => $calificacion
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error al guardar la calificación',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+```
+
+**Success Response:**
+```json
+{
+  "message": "¡Gracias por tu calificación! ⭐",
+  "calificacion": {
+    "id": 42,
+    "user_id": 3,
+    "pedido_id": 15,
+    "producto_id": 5,
+    "estrellas": 5,
+    "comentario": "Excellent cappuccino! Will order again.",
+    "created_at": "2026-03-05T14:23:45.000000Z",
+    "updated_at": "2026-03-05T14:23:45.000000Z"
+  }
+}
+```
+
+## Rating Business Rules
+
+### 1. Delivered Orders Only
+
+Customers can only rate products from orders with `estado = 'Entregado'`:
+
+```php
+if (strtolower($pedido->estado) !== 'entregado') {
+    return response()->json([
+        'message' => 'Solo puedes calificar productos de pedidos entregados.'
+    ], 403);
+}
+```
+
+This ensures all reviews are from verified purchases.
+
+### 2. One Rating Per Product Per Order
+
+Prevents duplicate ratings:
+
+```php
+$existe = Calificacion::where('pedido_id', $request->pedido_id)
+                      ->where('producto_id', $request->producto_id)
+                      ->exists();
+
+if ($existe) {
+    return response()->json(['message' => 'Ya has calificado este producto.'], 400);
+}
+```
+
+### 3. Order Ownership
+
+Users can only rate products from their own orders:
+
+```php
+$pedido = Pedido::where('id', $request->pedido_id)
+                ->where('user_id', Auth::id())
+                ->first();
+```
+
+### 4. Star Range
+
+Ratings must be between 1 and 5 stars:
+
+```php
+'estrellas' => 'required|integer|min:1|max:5',
+```
+
+### 5. Optional Comment
+
+Customers can leave text feedback (max 255 characters) or rate without comment:
+
+```php
+'comentario' => 'nullable|string|max:255',
+```
+
+## Viewing Reviews
+
+### Get Product Reviews
+
+Public endpoint to view all reviews for a product.
+
+**Endpoint:** `GET /api/productos/{id}/calificaciones`
+
+```php
+// CalificacionController.php:83
+public function porProducto($productoId): JsonResponse
+{
+    $calificaciones = Calificacion::where('producto_id', $productoId)
+        ->with('usuario:id,name')  // Include reviewer name only
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json($calificaciones);
+}
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 42,
+    "user_id": 3,
+    "pedido_id": 15,
+    "producto_id": 5,
+    "estrellas": 5,
+    "comentario": "Excellent cappuccino! Will order again.",
+    "created_at": "2026-03-05T14:23:45.000000Z",
+    "usuario": {
+      "id": 3,
+      "name": "John Doe"
+    }
+  },
+  {
+    "id": 38,
+    "user_id": 7,
+    "pedido_id": 12,
+    "producto_id": 5,
+    "estrellas": 4,
+    "comentario": "Good but a bit pricey",
+    "created_at": "2026-03-04T10:15:22.000000Z",
+    "usuario": {
+      "id": 7,
+      "name": "Jane Smith"
+    }
+  }
+]
+```
+
+### Customer's Own Reviews
+
+**Endpoint:** `GET /api/cliente/mis-calificaciones`
+
+Returns all reviews submitted by the authenticated customer.
+
+### Update Review
+
+**Endpoint:** `PATCH /api/cliente/calificaciones/{id}`
+
+**Request:**
+```json
+{
+  "estrellas": 4,
+  "comentario": "Updated: Still good, but service was slow"
+}
+```
+
+### Delete Review
+
+**Endpoint:** `DELETE /api/cliente/calificaciones/{id}`
+
+Allows customers to remove their own reviews.
+
+## Average Rating Calculation
+
+Product average ratings are calculated dynamically:
+
+```php
+// ProductoController.php:167 (destacados endpoint)
+$promedio = $producto->calificaciones->avg('estrellas');
+$producto->calificaciones_avg_estrellas = $promedio ? round($promedio, 1) : 0;
+```
+
+**Example Calculation:**
+- Review 1: 5 stars
+- Review 2: 4 stars
+- Review 3: 5 stars
+- **Average:** (5 + 4 + 5) / 3 = 4.7 stars
+
+## Featured Products
+
+The home page displays top-rated products based on average ratings:
+
+**Endpoint:** `GET /api/productos/destacados`
+
+```php
+// ProductoController.php:157
+$destacados = $productos->map(function ($producto) {
+    $promedio = $producto->calificaciones->avg('estrellas');
+    $producto->calificaciones_avg_estrellas = $promedio ? round($promedio, 1) : 0;
+    return $producto;
+})
+->filter(fn($p) => $p->calificaciones_avg_estrellas > 0)  // Only rated products
+->sortByDesc('calificaciones_avg_estrellas')             // Highest first
+->take(4)                                                 // Top 4
+->values();
+```
+
+Only products with at least one rating are featured.
+
+## Business Dashboard
+
+Businesses can view ratings for their products:
+
+**Endpoint:** `GET /api/empresa/calificaciones`
+
+Returns all ratings for products belonging to the authenticated business.
+
+## Model Relationships
+
+```php
+// Calificacion.php:26
+public function usuario()
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
+
+public function producto()
+{
+    return $this->belongsTo(Producto::class);
+}
+
+public function pedido()
+{
+    return $this->belongsTo(Pedido::class);
+}
+```
+
+```php
+// Producto.php:43
+public function calificaciones()
+{
+    return $this->hasMany(Calificacion::class);
+}
+```
+
+## Privacy Considerations
+
+### Limited User Information
+
+When displaying reviews publicly, only the reviewer's name is exposed:
+
+```php
+->with('usuario:id,name')  // Only id and name, not email or other data
+```
+
+### Owner-Only Modification
+
+Customers can only update/delete their own reviews. The system should verify:
+
+```php
+$calificacion = Calificacion::where('id', $id)
+    ->where('user_id', Auth::id())
+    ->first();
+
+if (!$calificacion) {
+    return response()->json(['message' => 'No encontrado'], 404);
+}
+```
+
+## Rating Distribution
+
+Calculate rating distribution for a product:
+
+```php
+$producto = Producto::with('calificaciones')->findOrFail($id);
+
+$distribucion = [
+    5 => $producto->calificaciones->where('estrellas', 5)->count(),
+    4 => $producto->calificaciones->where('estrellas', 4)->count(),
+    3 => $producto->calificaciones->where('estrellas', 3)->count(),
+    2 => $producto->calificaciones->where('estrellas', 2)->count(),
+    1 => $producto->calificaciones->where('estrellas', 1)->count(),
+];
+
+$total = $producto->calificaciones->count();
+$promedio = $producto->calificaciones->avg('estrellas');
+```
+
+**Example Output:**
+```json
+{
+  "producto_id": 5,
+  "nombre": "Cappuccino",
+  "total_calificaciones": 47,
+  "promedio": 4.6,
+  "distribucion": {
+    "5": 32,
+    "4": 10,
+    "3": 3,
+    "2": 1,
+    "1": 1
+  }
+}
+```
+
+## Complete API Reference
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/productos/{id}/calificaciones` | None | Get product reviews |
+| POST | `/api/cliente/calificar` | Customer | Submit rating |
+| GET | `/api/cliente/mis-calificaciones` | Customer | Get own reviews |
+| PATCH | `/api/cliente/calificaciones/{id}` | Customer | Update review |
+| DELETE | `/api/cliente/calificaciones/{id}` | Customer | Delete review |
+| GET | `/api/empresa/calificaciones` | Business | View business ratings |
+
+## Common Workflows
+
+### Submit Product Rating
+```http
+POST /api/cliente/calificar
+Authorization: Bearer {customer_token}
+Content-Type: application/json
+
+{
+  "pedido_id": 15,
+  "producto_id": 5,
+  "estrellas": 5,
+  "comentario": "Excellent cappuccino! Will order again."
+}
+```
+
+### View Product Reviews
+```http
+GET /api/productos/5/calificaciones
+```
+
+### Update Own Rating
+```http
+PATCH /api/cliente/calificaciones/42
+Authorization: Bearer {customer_token}
+Content-Type: application/json
+
+{
+  "estrellas": 4,
+  "comentario": "Good but service was slow"
+}
+```
+
+### Delete Review
+```http
+DELETE /api/cliente/calificaciones/42
+Authorization: Bearer {customer_token}
+```
+
+## Display Examples
+
+### Star Rating Display
+
+```html
+<!-- 4.6 stars -->
+<div class="rating">
+  <span class="stars">★★★★☆</span>
+  <span class="average">4.6</span>
+  <span class="count">(47 reviews)</span>
+</div>
+```
+
+### Review Card
+
+```html
+<div class="review">
+  <div class="header">
+    <span class="name">John Doe</span>
+    <span class="stars">★★★★★</span>
+    <span class="date">Mar 5, 2026</span>
+  </div>
+  <p class="comment">Excellent cappuccino! Will order again.</p>
+</div>
+```

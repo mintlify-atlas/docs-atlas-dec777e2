@@ -1,0 +1,378 @@
+---
+title: Payment Gateway (Mercado Pago)
+description: Configure Mercado Pago integration for processing marketplace payments
+---
+
+BeanQuick uses Mercado Pago to process payments for multi-vendor marketplace transactions. Mercado Pago provides a secure payment gateway supporting credit cards, debit cards, and various local payment methods across Latin America.
+
+## Prerequisites
+
+<Steps>
+  <Step title="Create Mercado Pago Account">
+    Sign up for a Mercado Pago account at [mercadopago.com](https://www.mercadopago.com)
+  </Step>
+  
+  <Step title="Access Your Credentials">
+    Navigate to [Developers Dashboard](https://www.mercadopago.com/developers/panel) to get your API credentials
+  </Step>
+  
+  <Step title="Install Dependencies">
+    The Mercado Pago SDK is already included in `composer.json`:
+    ```bash
+    composer install
+    ```
+  </Step>
+</Steps>
+
+## Mercado Pago SDK
+
+BeanQuick uses the official Mercado Pago PHP SDK:
+
+```json composer.json
+"mercadopago/dx-php": "^3.8"
+```
+
+This package is automatically installed when you run `composer install`.
+
+## Configuration
+
+### Environment Variables
+
+Add your Mercado Pago credentials to `.env`:
+
+```bash .env
+MERCADOPAGO_ACCESS_TOKEN=your-access-token-here
+WEBHOOK_URL=https://yourdomain.com/api/webhook/mercadopago
+APP_FRONTEND_URL=http://localhost:5173
+```
+
+| Variable | Description | Where to Find |
+|----------|-------------|---------------|
+| `MERCADOPAGO_ACCESS_TOKEN` | Private access token for API requests | Developer Dashboard > Credentials |
+| `WEBHOOK_URL` | Public URL for payment notifications | Your backend domain + `/api/webhook/mercadopago` |
+| `APP_FRONTEND_URL` | Frontend application URL for redirects | Your frontend domain |
+
+<Warning>
+The `WEBHOOK_URL` must be publicly accessible via HTTPS. Mercado Pago cannot send webhooks to `localhost`.
+</Warning>
+
+### Service Configuration
+
+The access token is configured in `config/services.php`:
+
+```php config/services.php
+'mercadopago' => [
+    'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
+],
+```
+
+## Getting API Credentials
+
+### Sandbox Credentials (Testing)
+
+1. Go to [Mercado Pago Developers](https://www.mercadopago.com/developers/panel)
+2. Select **Test Credentials**
+3. Copy the **Access Token**
+4. Add to `.env` as `MERCADOPAGO_ACCESS_TOKEN`
+
+### Production Credentials
+
+1. Complete your Mercado Pago account verification
+2. Go to [Mercado Pago Developers](https://www.mercadopago.com/developers/panel)
+3. Select **Production Credentials**
+4. Copy the **Access Token**
+5. Update `.env` with production token
+
+<Tip>
+Use test credentials during development and only switch to production credentials when deploying to production.
+</Tip>
+
+## Webhook Configuration
+
+Webhooks notify your application when payment status changes.
+
+### Webhook URL Setup
+
+The webhook endpoint is defined in `routes/api.php`:
+
+```php
+Route::post('/webhook/mercadopago', [PagoController::class, 'webhook']);
+```
+
+Full webhook URL format:
+```
+https://yourdomain.com/api/webhook/mercadopago
+```
+
+### Webhook Events
+
+The webhook handler (`PagoController@webhook`) processes payment status updates:
+
+- `approved` - Payment approved
+- `pending` - Payment pending
+- `in_process` - Payment being processed
+- `rejected` - Payment rejected
+- `cancelled` - Payment cancelled
+- `refunded` - Payment refunded
+- `charged_back` - Payment charged back
+
+### Payment Status Mapping
+
+BeanQuick maps Mercado Pago statuses to internal order states:
+
+| Mercado Pago Status | BeanQuick Status | Action |
+|---------------------|------------------|--------|
+| `approved` | `aprobado` | Deduct stock, empty cart, change order status to "Pagado" |
+| `pending`, `in_process` | `pendiente` | Keep order in pending state |
+| `rejected`, `cancelled` | `rechazado` | Mark payment as failed |
+| `refunded`, `charged_back` | `reembolsado` | Mark as refunded |
+
+### Configuring Webhooks in Mercado Pago
+
+<Steps>
+  <Step title="Access Developer Dashboard">
+    Go to [Mercado Pago Webhooks](https://www.mercadopago.com/developers/panel/webhooks)
+  </Step>
+  
+  <Step title="Add New Webhook">
+    Click "Add Webhook" or "Configure Webhooks"
+  </Step>
+  
+  <Step title="Set Webhook URL">
+    Enter your webhook URL:
+    ```
+    https://yourdomain.com/api/webhook/mercadopago
+    ```
+  </Step>
+  
+  <Step title="Select Events">
+    Choose **Payment** events to receive notifications
+  </Step>
+  
+  <Step title="Save Configuration">
+    Save the webhook configuration
+  </Step>
+</Steps>
+
+## Payment Flow
+
+### 1. Create Payment Preference
+
+When a user initiates payment, BeanQuick creates a payment preference:
+
+```php
+POST /api/pagos/{pedido_id}
+```
+
+This generates a Mercado Pago checkout URL (`init_point`) that redirects users to the payment page.
+
+### 2. User Completes Payment
+
+The user is redirected to Mercado Pago to complete the payment.
+
+### 3. Payment Callback URLs
+
+After payment, users are redirected based on status:
+
+```php
+"back_urls" => [
+    "success" => env('APP_FRONTEND_URL') . "/pago-exitoso",
+    "failure" => env('APP_FRONTEND_URL') . "/pago-fallido",
+    "pending" => env('APP_FRONTEND_URL') . "/pago-pendiente"
+]
+```
+
+### 4. Webhook Notification
+
+Mercado Pago sends a webhook notification to update order status:
+
+```
+POST https://yourdomain.com/api/webhook/mercadopago
+```
+
+The webhook handler:
+1. Retrieves payment details from Mercado Pago API
+2. Updates order payment status
+3. Deducts product stock (if approved)
+4. Empties user's shopping cart (if approved)
+
+## Testing Payments
+
+### Sandbox Test Cards
+
+Use these test cards in sandbox mode:
+
+| Card Type | Card Number | CVV | Expiry |
+|-----------|-------------|-----|--------|
+| Visa (Approved) | 4509 9535 6623 3704 | 123 | Any future date |
+| Mastercard (Approved) | 5031 7557 3453 0604 | 123 | Any future date |
+| Visa (Rejected) | 4000 0000 0000 0002 | 123 | Any future date |
+
+### Test User Credentials
+
+Create test users in the [Mercado Pago Test Users](https://www.mercadopago.com/developers/panel/test-users) section.
+
+### Local Webhook Testing with ngrok
+
+Since webhooks require public URLs, use [ngrok](https://ngrok.com/) for local testing:
+
+```bash
+# Start your Laravel server
+php artisan serve
+
+# In another terminal, start ngrok
+ngrok http 8000
+```
+
+Update your `.env` with the ngrok URL:
+
+```bash
+WEBHOOK_URL=https://abc123.ngrok.io/api/webhook/mercadopago
+```
+
+<Tip>
+Configure the ngrok webhook URL in the Mercado Pago developer dashboard for testing.
+</Tip>
+
+## Security Considerations
+
+<Steps>
+  <Step title="Validate Webhook Origin">
+    Always verify webhook requests come from Mercado Pago by checking the payment status via API.
+  </Step>
+  
+  <Step title="Use HTTPS in Production">
+    Webhook URLs must use HTTPS in production for secure communication.
+  </Step>
+  
+  <Step title="Protect Access Token">
+    Never commit your access token to version control. Use environment variables.
+  </Step>
+  
+  <Step title="Idempotency">
+    The webhook handler checks existing payment status before updating to prevent duplicate processing.
+  </Step>
+</Steps>
+
+## Production Deployment
+
+### Checklist
+
+<Steps>
+  <Step title="Switch to Production Credentials">
+    Replace test credentials with production credentials in `.env`
+  </Step>
+  
+  <Step title="Update Webhook URL">
+    Configure production webhook URL in Mercado Pago dashboard:
+    ```
+    https://yourdomain.com/api/webhook/mercadopago
+    ```
+  </Step>
+  
+  <Step title="Enable HTTPS">
+    Ensure your domain has a valid SSL certificate
+  </Step>
+  
+  <Step title="Test Payment Flow">
+    Complete a test transaction in production mode with a small amount
+  </Step>
+  
+  <Step title="Monitor Webhook Logs">
+    Check `storage/logs/laravel.log` for webhook processing:
+    ```bash
+    tail -f storage/logs/laravel.log | grep WEBHOOK
+    ```
+  </Step>
+</Steps>
+
+### Production Environment Variables
+
+```bash .env
+APP_ENV=production
+APP_DEBUG=false
+MERCADOPAGO_ACCESS_TOKEN=APP_USR-your-production-token
+WEBHOOK_URL=https://yourdomain.com/api/webhook/mercadopago
+APP_FRONTEND_URL=https://yourdomain.com
+```
+
+## Troubleshooting
+
+### Webhook Not Receiving Notifications
+
+1. Verify webhook URL is publicly accessible:
+
+```bash
+curl -X POST https://yourdomain.com/api/webhook/mercadopago
+```
+
+2. Check Mercado Pago webhook logs in the developer dashboard
+
+3. Review Laravel logs:
+
+```bash
+tail -f storage/logs/laravel.log
+```
+
+### Payment Status Not Updating
+
+1. Check that `MERCADOPAGO_ACCESS_TOKEN` is correct
+
+2. Verify the `external_reference` matches the order ID
+
+3. Check database transaction logs
+
+### Invalid Access Token
+
+Clear configuration cache:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+### CORS Issues
+
+If frontend cannot communicate with payment endpoints, verify CORS configuration in `config/cors.php`.
+
+## Monitoring and Logging
+
+BeanQuick logs all webhook activity:
+
+```php
+\Log::info('WEBHOOK RECIBIDO:', $request->all());
+\Log::info('PAYMENT COMPLETO:', [
+    'status' => $payment->status,
+    'external_reference' => $payment->external_reference
+]);
+\Log::info('PEDIDO ACTUALIZADO', [
+    'pedido_id' => $pedido->id,
+    'nuevo_estado' => $nuevoEstado
+]);
+```
+
+Monitor logs in production:
+
+```bash
+tail -f storage/logs/laravel.log | grep -E "WEBHOOK|PAYMENT|PEDIDO"
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Mercado Pago API Reference" icon="book" href="https://www.mercadopago.com/developers/en/reference">
+    Official API documentation
+  </Card>
+  
+  <Card title="Mercado Pago Webhooks" icon="webhook" href="https://www.mercadopago.com/developers/en/docs/webhooks">
+    Webhook integration guide
+  </Card>
+  
+  <Card title="Test Cards" icon="credit-card" href="https://www.mercadopago.com/developers/en/docs/checkout-api/testing">
+    Testing payment flows
+  </Card>
+  
+  <Card title="SDK Documentation" icon="code" href="https://github.com/mercadopago/sdk-php">
+    PHP SDK on GitHub
+  </Card>
+</CardGroup>

@@ -1,0 +1,296 @@
+---
+title: 'Users'
+description: 'Manage user accounts in BeanQuick'
+---
+
+## Overview
+
+The Users API allows administrators to view, update, and delete user accounts. Administrators can manage user roles and basic profile information.
+
+<Note>
+All user management endpoints require:
+- Valid Sanctum authentication token
+- User must have `admin` role
+</Note>
+
+---
+
+## Get User Details
+
+<RequestExample>
+```bash curl
+curl -X GET https://api.beanquick.com/api/admin/usuarios/5 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "id": 5,
+  "name": "Maria González",
+  "email": "maria@example.com",
+  "rol": "cliente",
+  "created_at": "2026-02-20T10:15:00.000000Z",
+  "updated_at": "2026-02-20T10:15:00.000000Z"
+}
+```
+</ResponseExample>
+
+Retrieves detailed information about a specific user.
+
+### Endpoint
+
+<ParamField path="GET" type="string">
+  /api/admin/usuarios/{id}
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the user to retrieve
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="id" type="integer">
+  User ID
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  User's full name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  User's email address
+</ResponseField>
+
+<ResponseField name="rol" type="string">
+  User role: `admin`, `cliente`, or `empresa`
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  Account creation timestamp
+</ResponseField>
+
+<ResponseField name="updated_at" type="datetime">
+  Last update timestamp
+</ResponseField>
+
+<Note>
+The `password` field is never returned in API responses for security.
+</Note>
+
+---
+
+## Update User
+
+<RequestExample>
+```bash curl
+curl -X PUT https://api.beanquick.com/api/admin/usuarios/5 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Maria González López",
+    "email": "maria.gonzalez@example.com",
+    "rol": "admin",
+    "password": "newSecurePassword123"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Usuario actualizado correctamente.",
+  "usuario": {
+    "id": 5,
+    "name": "Maria González López",
+    "email": "maria.gonzalez@example.com",
+    "rol": "admin",
+    "created_at": "2026-02-20T10:15:00.000000Z",
+    "updated_at": "2026-03-05T14:30:00.000000Z"
+  }
+}
+```
+</ResponseExample>
+
+Updates user information including name, email, role, and optionally password.
+
+### Endpoint
+
+<ParamField path="PUT" type="string">
+  /api/admin/usuarios/{id}
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the user to update
+</ParamField>
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  User's full name. Maximum 255 characters.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be unique (excluding the current user).
+</ParamField>
+
+<ParamField body="rol" type="string" required>
+  User role. Must be either `admin` or `cliente`.
+</ParamField>
+
+<ParamField body="password" type="string">
+  New password. Optional. Minimum 6 characters. If not provided, password remains unchanged.
+</ParamField>
+
+### Validation Rules
+
+- `name`: Required, string, max 255 characters
+- `email`: Required, valid email format, unique (ignoring current user)
+- `rol`: Required, must be `admin` or `cliente`
+- `password`: Optional, string, minimum 6 characters
+
+<Note>
+The password is automatically hashed using bcrypt before storage. Only provide the password field when you want to change it.
+</Note>
+
+### Response Fields
+
+<ResponseField name="message" type="string">
+  Success confirmation message
+</ResponseField>
+
+<ResponseField name="usuario" type="object">
+  The updated user object (password not included)
+</ResponseField>
+
+---
+
+## Delete User
+
+<RequestExample>
+```bash curl
+curl -X DELETE https://api.beanquick.com/api/admin/usuarios/5 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "message": "Usuario eliminado correctamente."
+}
+```
+</ResponseExample>
+
+Permanently deletes a user account.
+
+### Endpoint
+
+<ParamField path="DELETE" type="string">
+  /api/admin/usuarios/{id}
+</ParamField>
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the user to delete
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="message" type="string">
+  Confirmation message
+</ResponseField>
+
+### Security Protection
+
+<Warning>
+Administrators cannot delete their own account. Attempting to do so returns a 403 Forbidden error:
+
+```json
+{
+  "message": "No puedes eliminar tu propia cuenta de administrador."
+}
+```
+</Warning>
+
+### Error Responses
+
+<ResponseExample>
+```json Self-Deletion Attempt
+{
+  "message": "No puedes eliminar tu propia cuenta de administrador."
+}
+```
+</ResponseExample>
+
+<ResponseExample>
+```json Server Error
+{
+  "message": "Error al eliminar el usuario.",
+  "error": "Foreign key constraint violation"
+}
+```
+</ResponseExample>
+
+---
+
+## Role Management
+
+BeanQuick supports three user roles:
+
+### Role Types
+
+<ParamField body="admin" type="role">
+  **Administrator**: Full system access including user management, category management, and business approval
+</ParamField>
+
+<ParamField body="cliente" type="role">
+  **Customer**: Can browse products, place orders, manage cart, and write reviews
+</ParamField>
+
+<ParamField body="empresa" type="role">
+  **Business**: Can manage products, view orders, access dashboard analytics. Not manageable via this API (use Business API instead)
+</ParamField>
+
+<Note>
+The admin users endpoint only allows managing `admin` and `cliente` roles. Business users (`empresa`) are tied to business entities and should be managed through the business registration and activation workflow.
+</Note>
+
+---
+
+## User Model
+
+The `User` model has the following structure:
+
+### Database Fields
+
+- `id` - Primary key (auto-increment)
+- `name` - User's full name
+- `email` - Email address (unique)
+- `password` - Hashed password (bcrypt)
+- `rol` - User role: `admin`, `cliente`, or `empresa`
+- `remember_token` - Session token (hidden)
+- `created_at` - Account creation timestamp
+- `updated_at` - Last update timestamp
+
+### Relationships
+
+- **empresa**: One user has one business profile (if role is `empresa`)
+- **carrito**: Many-to-many relationship with products via `carrito_productos` pivot table
+- **productos**: One user (business) has many products
+- **pedidos**: One user has many orders
+
+### Hidden Fields
+
+The following fields are never returned in API responses:
+- `password`
+- `remember_token`
